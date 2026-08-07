@@ -1,0 +1,61 @@
+.ludo-token {
+  width: 70%;
+  height: 70%;
+  border-radius: 50%;
+  position: relative;
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3), inset 0 -4px 6px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s ease;
+  z-index: 10;
+}
+
+.ludo-token:hover {
+  transform: scale(1.15) translateY(-2px);
+  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.3), inset 0 -4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.ludo-token:active {
+  transform: scale(0.95);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3), inset 0 -2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.token-inner {
+  position: absolute;
+  top: 15%;
+  left: 15%;
+  width: 70%;
+  height: 70%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), rgba(255,255,255,0) 60%);
+}
+
+.token-red {
+  background: radial-gradient(circle at center, var(--color-red-light) 0%, var(--color-red) 60%, var(--color-red-dark) 100%);
+  border: 1px solid var(--color-red-dark);
+}
+
+.token-green {
+  background: radial-gradient(circle at center, var(--color-green-light) 0%, var(--color-green) 60%, var(--color-green-dark) 100%);
+  border: 1px solid var(--color-green-dark);
+}
+
+.token-blue {
+  background: radial-gradient(circle at center, var(--color-blue-light) 0%, var(--color-blue) 60%, var(--color-blue-dark) 100%);
+  border: 1px solid var(--color-blue-dark);
+}
+
+.token-yellow {
+  background: radial-gradient(circle at center, var(--color-yellow-light) 0%, var(--color-yellow) 60%, var(--color-yellow-dark) 100%);
+  border: 1px solid var(--color-yellow-dark);
+}
+
+.ludo-token.highlight {
+  animation: pulse-highlight 1.5s infinite;
+  z-index: 30;
+}
+
+@keyframes pulse-highlight {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7); }
+  50% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(255, 255, 255, 0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+}

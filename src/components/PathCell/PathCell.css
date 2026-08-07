@@ -1,0 +1,21 @@
+.path-cell {
+  border: 1px solid var(--color-cell-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background-color: white;
+}
+
+.path-cell.safe-spot {
+  /* optional special styling for safe spots */
+}
+
+.path-cell.home-stretch {
+  /* optional special styling for home stretch */
+}
+
+/* Let's adjust the star color based on the cell if needed */
+.path-cell svg {
+  opacity: 0.8;
+}

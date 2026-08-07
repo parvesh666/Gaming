@@ -1,0 +1,116 @@
+.dice-container {
+  width: 80px;
+  height: 80px;
+  cursor: pointer;
+  perspective: 800px;
+  margin: 16px 0;
+}
+
+.dice-container.disabled {
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.dice-cube {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.dice-face {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: white;
+  border-radius: 16px;
+  box-shadow: inset 0 0 15px rgba(0,0,0,0.1), 0 0 4px rgba(0,0,0,0.2);
+  display: grid;
+  padding: 12px;
+  gap: 8px;
+  border: 2px solid #e2e8f0;
+  backface-visibility: hidden; /* Helps performance */
+}
+
+/* 3D Positioning of the faces */
+.face-1 { transform: rotateY(0deg) translateZ(40px); }
+.face-2 { transform: rotateY(180deg) translateZ(40px); }
+.face-3 { transform: rotateY(-90deg) translateZ(40px); }
+.face-4 { transform: rotateY(90deg) translateZ(40px); }
+.face-5 { transform: rotateX(90deg) translateZ(40px); }
+.face-6 { transform: rotateX(-90deg) translateZ(40px); }
+
+/* Rotations to show correct face */
+.show-1 { transform: rotateY(0deg); }
+.show-2 { transform: rotateY(180deg); }
+.show-3 { transform: rotateY(90deg); }
+.show-4 { transform: rotateY(-90deg); }
+.show-5 { transform: rotateX(-90deg); }
+.show-6 { transform: rotateX(90deg); }
+
+.dice-dot {
+  background-color: var(--color-text);
+  border-radius: 50%;
+  width: 100%;
+  height: 100%;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+}
+
+/* Specific layouts for different dice values */
+.dice-value-1 {
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr;
+  place-items: center;
+}
+.dice-value-1 .dice-dot {
+  width: 24px;
+  height: 24px;
+}
+
+.dice-value-2 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+.dice-value-2 .dice-dot:nth-child(1) { align-self: start; justify-self: start; }
+.dice-value-2 .dice-dot:nth-child(2) { grid-area: 2 / 2; align-self: end; justify-self: end; }
+
+.dice-value-3 {
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr 1fr;
+}
+.dice-value-3 .dice-dot:nth-child(1) { grid-area: 1 / 1; }
+.dice-value-3 .dice-dot:nth-child(2) { grid-area: 2 / 2; }
+.dice-value-3 .dice-dot:nth-child(3) { grid-area: 3 / 3; }
+
+.dice-value-4 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+}
+
+.dice-value-5 {
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-rows: 1fr 1fr 1fr;
+}
+.dice-value-5 .dice-dot:nth-child(1) { grid-area: 1 / 1; }
+.dice-value-5 .dice-dot:nth-child(2) { grid-area: 1 / 3; }
+.dice-value-5 .dice-dot:nth-child(3) { grid-area: 2 / 2; }
+.dice-value-5 .dice-dot:nth-child(4) { grid-area: 3 / 1; }
+.dice-value-5 .dice-dot:nth-child(5) { grid-area: 3 / 3; }
+
+.dice-value-6 {
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr 1fr;
+}
+
+/* Rolling animation */
+.rolling .dice-cube {
+  transition: none; /* Disable transition during pure animation */
+  animation: roll-cube 0.6s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
+}
+
+@keyframes roll-cube {
+  0% { transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg) scale(1); }
+  50% { transform: rotateX(360deg) rotateY(180deg) rotateZ(90deg) scale(1.2); }
+  100% { transform: rotateX(720deg) rotateY(360deg) rotateZ(360deg) scale(1); }
+}
