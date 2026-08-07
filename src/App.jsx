@@ -20,7 +20,7 @@ function App() {
       localStorage.setItem('ludo_session', sessionId);
     }
 
-    const newSocket = io('http://localhost:3001');
+    const newSocket = io('https://gaming-6kav.onrender.com');
     setSocket(newSocket);
     
     newSocket.on('connect', () => {

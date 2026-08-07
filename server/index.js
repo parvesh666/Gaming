@@ -7,6 +7,11 @@ const LudoGame = require('./gameLogic');
 const app = express();
 app.use(cors());
 
+// Health check route so the browser doesn't show a 404
+app.get('/', (req, res) => {
+  res.send('Ludo Multiplayer Server is running and listening for socket connections!');
+});
+
 const server = http.createServer(app);
 
 const io = new Server(server, {
