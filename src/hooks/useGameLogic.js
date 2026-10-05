@@ -120,16 +120,18 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
 
         if (tokenIndex !== -1) {
           if (from === -1) {
+            currentTokens = [...currentTokens];
             currentTokens[tokenIndex] = { ...currentTokens[tokenIndex], distance: 0 };
-            setTokens([...currentTokens]);
+            setTokens(currentTokens);
             playMoveSound();
             await delay(250);
             from = 0;
           }
 
           for (let d = from + 1; d <= to; d++) {
+            currentTokens = [...currentTokens];
             currentTokens[tokenIndex] = { ...currentTokens[tokenIndex], distance: d };
-            setTokens([...currentTokens]);
+            setTokens(currentTokens);
             playMoveSound();
             await delay(250);
           }
