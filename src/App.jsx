@@ -54,7 +54,10 @@ function App() {
       };
       const handleStickerPlayed = (data) => {
         const id = Math.random().toString();
-        setActiveStickers(prev => [...prev, { ...data, id }]);
+        setActiveStickers(prev => {
+          const filtered = prev.filter(s => s.color !== data.color);
+          return [...filtered, { ...data, id }];
+        });
         setTimeout(() => {
           setActiveStickers(prev => prev.filter(s => s.id !== id));
         }, 5000);
@@ -83,7 +86,11 @@ function App() {
       socket.emit('play_sticker', { roomId, stickerUrl });
     } else {
       const id = Math.random().toString();
-      setActiveStickers(prev => [...prev, { color: playerColor || myColor || turn, stickerUrl, id, timestamp: Date.now() }]);
+      const color = playerColor || myColor || turn;
+      setActiveStickers(prev => {
+        const filtered = prev.filter(s => s.color !== color);
+        return [...filtered, { color, stickerUrl, id, timestamp: Date.now() }];
+      });
       setTimeout(() => {
         setActiveStickers(prev => prev.filter(s => s.id !== id));
       }, 5000);
