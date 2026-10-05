@@ -57,20 +57,20 @@ function createDiceFace(number) {
 
 const getRotationForNumber = (num) => {
   // BoxGeometry materials mapping: [Right, Left, Top, Bottom, Front, Back]
-  // We want the resulting number to be on the Top face (+Y).
-  // Face 0 (Right, 1): +X -> +Y (Z = PI/2)
-  // Face 1 (Left, 6): -X -> +Y (Z = -PI/2)
-  // Face 2 (Top, 2): +Y -> +Y (No rotation)
-  // Face 3 (Bottom, 5): -Y -> +Y (X = PI)
-  // Face 4 (Front, 3): +Z -> +Y (X = -PI/2)
-  // Face 5 (Back, 4): -Z -> +Y (X = PI/2)
+  // We want the resulting number to be on the Front face (+Z) facing the camera.
+  // Face 0 (Right, 1): +X -> +Z (Y = -PI/2)
+  // Face 1 (Left, 6): -X -> +Z (Y = PI/2)
+  // Face 2 (Top, 2): +Y -> +Z (X = PI/2)
+  // Face 3 (Bottom, 5): -Y -> +Z (X = -PI/2)
+  // Face 4 (Front, 3): +Z -> +Z (No rotation)
+  // Face 5 (Back, 4): -Z -> +Z (Y = PI)
   switch (num) {
-    case 1: return [0, 0, Math.PI / 2];
-    case 6: return [0, 0, -Math.PI / 2];
-    case 2: return [0, 0, 0];
-    case 5: return [Math.PI, 0, 0];
-    case 3: return [-Math.PI / 2, 0, 0];
-    case 4: return [Math.PI / 2, 0, 0];
+    case 1: return [0, -Math.PI / 2, 0];
+    case 6: return [0, Math.PI / 2, 0];
+    case 2: return [Math.PI / 2, 0, 0];
+    case 5: return [-Math.PI / 2, 0, 0];
+    case 3: return [0, 0, 0];
+    case 4: return [0, Math.PI, 0];
     default: return [0, 0, 0];
   }
 };
@@ -121,7 +121,7 @@ const DiceMesh = ({ forceValue, onAnimComplete }) => {
         animating.current = false;
         // Snap precisely to avoid floating point errors
         diceRef.current.rotation.set(...baseRot);
-        diceRef.current.position.y = 0;
+        diceRef.current.position.z = 0;
         if (onAnimComplete) onAnimComplete();
       }, 800);
     }
@@ -141,9 +141,9 @@ const DiceMesh = ({ forceValue, onAnimComplete }) => {
       diceRef.current.rotation.y = THREE.MathUtils.lerp(startRot.current[1], randomSpins.current[1], ease);
       diceRef.current.rotation.z = THREE.MathUtils.lerp(startRot.current[2], randomSpins.current[2], ease);
       
-      // Bounce effect on Y axis
+      // Bounce effect on Z axis since it's facing camera directly
       const bounce = Math.abs(Math.sin(t * Math.PI * 3)) * (1 - ease) * 1.5;
-      diceRef.current.position.y = bounce;
+      diceRef.current.position.z = bounce;
     }
   });
 
@@ -204,10 +204,10 @@ const Dice = ({ onRoll, disabled, forceValue, boostSix }) => {
         position: 'relative'
       }}
     >
-      <Canvas shadows camera={{ position: [0, 4, 4], fov: 40 }}>
+      <Canvas shadows camera={{ position: [0, 0, 6], fov: 35 }}>
         <ambientLight intensity={0.6} />
         <directionalLight 
-          position={[5, 10, 5]} 
+          position={[2, 2, 5]} 
           intensity={1.2} 
           castShadow 
           shadow-mapSize={[1024, 1024]}
@@ -216,9 +216,11 @@ const Dice = ({ onRoll, disabled, forceValue, boostSix }) => {
           forceValue={forceValue} 
           onAnimComplete={() => setRolling(false)} 
         />
+        {/* Shadow behind the dice to act like a 2D drop shadow */}
         <ContactShadows 
-          position={[0, -1.1, 0]} 
-          opacity={0.6} 
+          position={[0, 0, -1.2]} 
+          rotation={[Math.PI / 2, 0, 0]}
+          opacity={0.7} 
           scale={5} 
           blur={1.5} 
           far={2} 
