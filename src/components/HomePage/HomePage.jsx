@@ -5,6 +5,7 @@ import './HomePage.css';
 const HomePage = ({ onStartGame, socket }) => {
   const [mode, setMode] = useState('select'); // 'select', 'local_setup', 'online_setup', 'lobby'
   const [roomData, setRoomData] = useState(null);
+  const [roomId, setRoomId] = useState('');
   const [joinCode, setJoinCode] = useState('');
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
@@ -17,8 +18,6 @@ const HomePage = ({ onStartGame, socket }) => {
     });
 
     socket.on('game_started', (data) => {
-      // In a full implementation, we'd transition to an online game state here
-      // For now, this bridges to the local game state for UI testing
       const me = data.players.find(p => p.socketId === socket.id);
       const myPlayerColor = me ? me.color : null;
       onStartGame(roomData.playerCount, true, roomId, myPlayerColor); 
@@ -28,69 +27,33 @@ const HomePage = ({ onStartGame, socket }) => {
       socket.off('room_updated');
       socket.off('game_started');
     };
-  }, [socket, roomData, onStartGame]);
+  }, [socket, roomData, onStartGame, roomId]);
 
-  const handleCreateRoom = (count) => {
+  const handleCreate = (count) => {
     if (!socket) return;
     socket.emit('create_room', { playerCount: count }, (response) => {
       if (response.success) {
         setRoomData(response.roomData);
+        setRoomId(response.roomId);
         setMode('lobby');
         setError('');
       }
     });
   };
 
-  const handleJoinRoom = (e) => {
+  const handleJoin = (e) => {
     e.preventDefault();
     if (!socket || !joinCode.trim()) return;
-    
     socket.emit('join_room', { roomId: joinCode }, (response) => {
       if (response.success) {
         setRoomData(response.roomData);
+        setRoomId(response.roomId);
         setMode('lobby');
         setError('');
       } else {
         setError(response.message);
       }
     });
-  };
-
-  const copyRoomCode = () => {
-    navigator.clipboard.writeText(roomData?.roomId || joinCode); // roomId comes from response, wait, roomId is not in roomData. I need to get it.
-    // Actually, in the server response, roomId is returned alongside roomData.
-  };
-
-  // Wait, I need to make sure I store the roomId. Let's add roomId to state.
-  const [roomId, setRoomId] = useState('');
-
-  const createRoomCallback = (response) => {
-    if (response.success) {
-      setRoomData(response.roomData);
-      setRoomId(response.roomId);
-      setMode('lobby');
-      setError('');
-    }
-  };
-
-  const joinRoomCallback = (response) => {
-    if (response.success) {
-      setRoomData(response.roomData);
-      setRoomId(response.roomId);
-      setMode('lobby');
-      setError('');
-    } else {
-      setError(response.message);
-    }
-  };
-
-  const handleCreate = (count) => {
-    socket.emit('create_room', { playerCount: count }, createRoomCallback);
-  };
-
-  const handleJoin = (e) => {
-    e.preventDefault();
-    socket.emit('join_room', { roomId: joinCode }, joinRoomCallback);
   };
 
   const handleCopy = () => {
@@ -101,9 +64,8 @@ const HomePage = ({ onStartGame, socket }) => {
 
   const startGame = () => {
     socket.emit('start_online_game', { roomId }); 
-    const me = roomData.players.find(p => p.socketId === socket.id);
-    const myPlayerColor = me ? me.color : null;
-    onStartGame(roomData.playerCount, true, roomId, myPlayerColor); 
+    // Color is assigned server-side; the 'game_started' event handler
+    // will call onStartGame with the correct color for all players (including host).
   };
 
   return (

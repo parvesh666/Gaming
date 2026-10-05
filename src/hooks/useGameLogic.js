@@ -23,12 +23,14 @@ export const getTokenCoordinates = (token) => {
   return BOARD_PATH[pathIndex];
 };
 
+const getActiveColorsForCount = (count) => {
+  if (count === 2) return [COLORS.RED, COLORS.YELLOW];
+  if (count === 3) return [COLORS.RED, COLORS.GREEN, COLORS.YELLOW];
+  return [COLORS.RED, COLORS.GREEN, COLORS.YELLOW, COLORS.BLUE];
+};
+
 export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, roomId = null, myColor = null) => {
-  const [activeColors, setActiveColors] = useState(() => {
-    if (playerCount === 2) return [COLORS.RED, COLORS.YELLOW];
-    if (playerCount === 3) return [COLORS.RED, COLORS.GREEN, COLORS.YELLOW];
-    return [COLORS.RED, COLORS.GREEN, COLORS.YELLOW, COLORS.BLUE];
-  });
+  const [activeColors, setActiveColors] = useState(() => getActiveColorsForCount(playerCount));
 
   const [tokens, setTokens] = useState(() => 
     initialTokens.filter(t => activeColors.includes(t.color))
@@ -38,6 +40,7 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
   const [diceRolled, setDiceRolled] = useState(false);
   const [winner, setWinner] = useState(null);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [consecutiveSixes, setConsecutiveSixes] = useState(0);
 
   const isAnimatingRef = useRef(isAnimating);
   const latestTokens = useRef(tokens);
@@ -49,6 +52,20 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
   useEffect(() => {
     latestTokens.current = tokens;
   }, [tokens]);
+
+  // Reset game state when playerCount changes (fixes 2P/3P showing 4 players)
+  useEffect(() => {
+    if (isOnline) return; // Online state comes from server
+    const newActiveColors = getActiveColorsForCount(playerCount);
+    setActiveColors(newActiveColors);
+    setTokens(initialTokens.filter(t => newActiveColors.includes(t.color)));
+    setTurn(newActiveColors[0]);
+    setDiceValue(null);
+    setDiceRolled(false);
+    setWinner(null);
+    setConsecutiveSixes(0);
+    setIsAnimating(false);
+  }, [playerCount, isOnline]);
 
   useEffect(() => {
     if (isOnline && socket) {
@@ -119,12 +136,48 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
     setTurn(activeColors[nextIndex]);
     setDiceValue(null);
     setDiceRolled(false);
+    setConsecutiveSixes(0);
+  };
+
+  // Check if there's an opponent block (2+ same-color tokens) at a board position
+  const isBlockedAt = (row, col, movingColor) => {
+    const tokensHere = tokens.filter(t => {
+      if (t.color === movingColor) return false;
+      if (t.distance < 0 || t.distance > 50) return false;
+      const coords = getTokenCoordinates(t);
+      return coords && coords.row === row && coords.col === col;
+    });
+    
+    const byColor = {};
+    tokensHere.forEach(t => {
+      byColor[t.color] = (byColor[t.color] || 0) + 1;
+    });
+    
+    return Object.values(byColor).some(c => c >= 2);
   };
 
   const isValidMove = (token, roll) => {
     if (token.distance === 56) return false;
-    if (token.distance === -1) return roll === 6;
-    if (token.distance + roll > 56) return false; 
+    if (token.distance === -1) {
+      if (roll !== 6) return false;
+      // Check if starting position is blocked by opponent double tokens
+      const startCoords = getTokenCoordinates({ ...token, distance: 0 });
+      if (startCoords && isBlockedAt(startCoords.row, startCoords.col, token.color)) {
+        return false;
+      }
+      return true;
+    }
+    if (token.distance + roll > 56) return false;
+
+    // Check each square along the path for opponent blocks (can't land on or pass through)
+    for (let d = token.distance + 1; d <= token.distance + roll; d++) {
+      if (d > 50) break; // Home stretch - no opponent blocks possible
+      const tempCoords = getTokenCoordinates({ ...token, distance: d });
+      if (tempCoords && isBlockedAt(tempCoords.row, tempCoords.col, token.color)) {
+        return false;
+      }
+    }
+
     return true;
   };
 
@@ -139,6 +192,19 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
     if (diceRolled || winner || isAnimating) return;
     setDiceValue(val);
     setDiceRolled(true);
+
+    // Three consecutive sixes penalty
+    if (val === 6) {
+      const newCount = consecutiveSixes + 1;
+      setConsecutiveSixes(newCount);
+      if (newCount >= 3) {
+        // Forfeit turn - three sixes in a row
+        setTimeout(() => nextTurn(turn), 1000);
+        return;
+      }
+    } else {
+      setConsecutiveSixes(0);
+    }
 
     const myTokens = tokens.filter(t => t.color === turn);
     const hasValidMove = myTokens.some(t => isValidMove(t, val));
@@ -234,8 +300,12 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
     }
   };
 
+  // Auto-move when only one valid token can move
   useEffect(() => {
     if (diceRolled && diceValue && !isAnimating && !winner) {
+      // In online mode, only auto-move for own turn
+      if (isOnline && myColor && turn !== myColor) return;
+
       const myTokens = tokens.filter(t => t.color === turn);
       const validTokens = myTokens.filter(t => isValidMove(t, diceValue));
       

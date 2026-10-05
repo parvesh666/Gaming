@@ -24,7 +24,7 @@ const Controls = ({ turn, diceValue, diceRolled, onRoll, boostSix, isMyTurn = tr
           <p className="roll-result">Rolled a {diceValue}!</p>
         )}
         {!diceRolled && (
-          <p className="roll-hint">Click to roll</p>
+          <p className="roll-hint">{isMyTurn ? "Click to roll" : "Waiting for opponent..."}</p>
         )}
       </div>
     </div>

@@ -126,10 +126,10 @@ io.on('connection', (socket) => {
 
     const result = room.game.rollDice(player.color);
     if (result) {
-      io.to(roomId).emit('dice_rolled', { val: result.val });
+      io.to(roomId).emit('dice_rolled', { val: result.val, threeSixesPenalty: result.threeSixesPenalty });
       io.to(roomId).emit('game_state_update', room.game.getState());
 
-      if (!result.hasValidMove) {
+      if (result.threeSixesPenalty || !result.hasValidMove) {
         setTimeout(() => {
           room.game.nextTurn();
           io.to(roomId).emit('game_state_update', room.game.getState());
@@ -147,6 +147,10 @@ io.on('connection', (socket) => {
 
     const result = room.game.moveToken(tokenId, player.color);
     if (result !== false) {
+      // Consume dice immediately to prevent double-move exploits
+      room.game.diceValue = null;
+      // Keep diceRolled=true to prevent re-rolling during animation
+
       io.to(roomId).emit('game_state_update', room.game.getState());
 
       if (result.hasWon) return;
@@ -155,11 +159,10 @@ io.on('connection', (socket) => {
         if (!result.extraTurn) {
           room.game.nextTurn();
         } else {
-          room.game.diceValue = null;
           room.game.diceRolled = false;
         }
         io.to(roomId).emit('game_state_update', room.game.getState());
-      }, 1000); // Base delay for animation, can be adjusted
+      }, 1000);
     }
   });
 
@@ -195,6 +198,8 @@ io.on('connection', (socket) => {
         }
       }
       
+      socket.leave(roomId);
+
       if (currentSessionId && sessions[currentSessionId]) {
         sessions[currentSessionId].roomId = null;
       }

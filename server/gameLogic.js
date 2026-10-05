@@ -9,6 +9,7 @@ class LudoGame {
     this.diceValue = null;
     this.diceRolled = false;
     this.winner = null;
+    this.consecutiveSixes = 0;
   }
 
   getActiveColors(count) {
@@ -47,6 +48,7 @@ class LudoGame {
     this.turn = this.activeColors[nextIndex];
     this.diceValue = null;
     this.diceRolled = false;
+    this.consecutiveSixes = 0;
   }
 
   removePlayer(color) {
@@ -56,22 +58,58 @@ class LudoGame {
     if (index !== -1) {
       this.activeColors.splice(index, 1);
       
-      if (this.activeColors.length === 1) {
+      if (this.activeColors.length <= 0) {
+        this.winner = null;
+      } else if (this.activeColors.length === 1) {
         this.winner = this.activeColors[0];
-      } else if (this.activeColors.length > 1) {
-        if (this.turn === color) {
-          this.turn = this.activeColors[index % this.activeColors.length];
-          this.diceValue = null;
-          this.diceRolled = false;
-        }
+      } else if (this.turn === color) {
+        this.turn = this.activeColors[index % this.activeColors.length];
+        this.diceValue = null;
+        this.diceRolled = false;
+        this.consecutiveSixes = 0;
       }
     }
   }
 
+  // Check if there's an opponent block (2+ same-color tokens) at a board position
+  isBlockedAt(row, col, movingColor) {
+    const tokensHere = this.tokens.filter(t => {
+      if (t.color === movingColor) return false;
+      if (t.distance < 0 || t.distance > 50) return false;
+      const coords = this.getTokenCoordinates(t);
+      return coords && coords.row === row && coords.col === col;
+    });
+    
+    const byColor = {};
+    tokensHere.forEach(t => {
+      byColor[t.color] = (byColor[t.color] || 0) + 1;
+    });
+    
+    return Object.values(byColor).some(c => c >= 2);
+  }
+
   isValidMove(token, roll) {
     if (token.distance === 56) return false;
-    if (token.distance === -1) return roll === 6;
+    if (token.distance === -1) {
+      if (roll !== 6) return false;
+      // Check if starting position is blocked by opponent double tokens
+      const startCoords = this.getTokenCoordinates({ ...token, distance: 0 });
+      if (startCoords && this.isBlockedAt(startCoords.row, startCoords.col, token.color)) {
+        return false;
+      }
+      return true;
+    }
     if (token.distance + roll > 56) return false;
+
+    // Check each square along the path for opponent blocks (can't land on or pass through)
+    for (let d = token.distance + 1; d <= token.distance + roll; d++) {
+      if (d > 50) break; // Home stretch - no opponent blocks possible
+      const tempCoords = this.getTokenCoordinates({ ...token, distance: d });
+      if (tempCoords && this.isBlockedAt(tempCoords.row, tempCoords.col, token.color)) {
+        return false;
+      }
+    }
+
     return true;
   }
 
@@ -79,20 +117,25 @@ class LudoGame {
     if (this.diceRolled || this.winner) return null;
     if (requestedByColor !== this.turn) return null;
 
-    const myTokens = this.tokens.filter(t => t.color === this.turn);
-    const allInBase = myTokens.every(t => t.distance === -1);
-    
-    let val = Math.floor(Math.random() * 6) + 1;
-    if (allInBase && Math.random() < 0.5) {
-      val = 6;
-    }
+    const val = Math.floor(Math.random() * 6) + 1;
 
     this.diceValue = val;
     this.diceRolled = true;
 
+    if (val === 6) {
+      this.consecutiveSixes++;
+      if (this.consecutiveSixes >= 3) {
+        // Three consecutive sixes penalty - forfeit turn
+        return { val, hasValidMove: false, threeSixesPenalty: true };
+      }
+    } else {
+      this.consecutiveSixes = 0;
+    }
+
+    const myTokens = this.tokens.filter(t => t.color === this.turn);
     const hasValidMove = myTokens.some(t => this.isValidMove(t, val));
     
-    return { val, hasValidMove };
+    return { val, hasValidMove, threeSixesPenalty: false };
   }
 
   moveToken(tokenId, requestedByColor) {
@@ -145,7 +188,8 @@ class LudoGame {
       diceValue: this.diceValue,
       diceRolled: this.diceRolled,
       winner: this.winner,
-      activeColors: this.activeColors
+      activeColors: this.activeColors,
+      consecutiveSixes: this.consecutiveSixes
     };
   }
 }
