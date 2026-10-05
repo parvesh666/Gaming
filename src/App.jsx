@@ -120,7 +120,8 @@ function App() {
     rollDice,
     moveToken,
     isValidMove,
-    activeColors
+    activeColors,
+    missedTurns
   } = useGameLogic(playerCount, isOnline, socket, roomId, myColor);
 
   // Determine if all tokens for the current player are in the base
@@ -184,6 +185,7 @@ function App() {
               onRoll={rollDice}
               isOnline={isOnline}
               setIsRolling={setIsRolling}
+              missedTurns={missedTurns}
             />
           </div>
         )}

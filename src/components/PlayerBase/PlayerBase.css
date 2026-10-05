@@ -219,3 +219,24 @@
   to { opacity: 1; transform: scale(1); }
 }
 
+.missed-turns-container {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.missed-turn-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #10b981;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 4px rgba(16, 185, 129, 0.6);
+}
+
+.missed-turn-dot.lost {
+  background-color: #ef4444;
+  opacity: 0.9;
+  box-shadow: 0 0 4px rgba(239, 68, 68, 0.6);
+}

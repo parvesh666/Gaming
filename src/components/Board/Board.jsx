@@ -7,7 +7,7 @@ import Token from '../Token/Token';
 import { COLORS, isPathCell } from '../../utils/constants';
 import { getTokenCoordinates } from '../../hooks/useGameLogic';
 
-const Board = ({ tokens, turn, diceValue, diceRolled, onMoveToken, isValidMove, activeColors, myColor, isRolling, players, activeStickers, playSticker, rollId, onRoll, isOnline, setIsRolling }) => {
+const Board = ({ tokens, turn, diceValue, diceRolled, onMoveToken, isValidMove, activeColors, myColor, isRolling, players, activeStickers, playSticker, rollId, onRoll, isOnline, setIsRolling, missedTurns }) => {
   const renderPathCells = () => {
     const cells = [];
     for (let row = 1; row <= 15; row++) {
@@ -70,10 +70,10 @@ const Board = ({ tokens, turn, diceValue, diceRolled, onMoveToken, isValidMove, 
     <div className="board-wrapper glass">
       <div className="ludo-board">
         {/* The 4 Player Bases */}
-        <PlayerBase color={COLORS.RED} position="top-left" tokens={tokens} turn={turn} diceRolled={diceRolled} diceValue={diceValue} onMoveToken={onMoveToken} isValidMove={isValidMove} activeColors={activeColors} myColor={myColor} isRolling={isRolling} players={players} activeStickers={activeStickers} playSticker={playSticker} rollId={rollId} onRoll={onRoll} isOnline={isOnline} setIsRolling={setIsRolling} />
-        <PlayerBase color={COLORS.GREEN} position="top-right" tokens={tokens} turn={turn} diceRolled={diceRolled} diceValue={diceValue} onMoveToken={onMoveToken} isValidMove={isValidMove} activeColors={activeColors} myColor={myColor} isRolling={isRolling} players={players} activeStickers={activeStickers} playSticker={playSticker} rollId={rollId} onRoll={onRoll} isOnline={isOnline} setIsRolling={setIsRolling} />
-        <PlayerBase color={COLORS.BLUE} position="bottom-left" tokens={tokens} turn={turn} diceRolled={diceRolled} diceValue={diceValue} onMoveToken={onMoveToken} isValidMove={isValidMove} activeColors={activeColors} myColor={myColor} isRolling={isRolling} players={players} activeStickers={activeStickers} playSticker={playSticker} rollId={rollId} onRoll={onRoll} isOnline={isOnline} setIsRolling={setIsRolling} />
-        <PlayerBase color={COLORS.YELLOW} position="bottom-right" tokens={tokens} turn={turn} diceRolled={diceRolled} diceValue={diceValue} onMoveToken={onMoveToken} isValidMove={isValidMove} activeColors={activeColors} myColor={myColor} isRolling={isRolling} players={players} activeStickers={activeStickers} playSticker={playSticker} rollId={rollId} onRoll={onRoll} isOnline={isOnline} setIsRolling={setIsRolling} />
+        <PlayerBase color={COLORS.RED} position="top-left" tokens={tokens} turn={turn} diceRolled={diceRolled} diceValue={diceValue} onMoveToken={onMoveToken} isValidMove={isValidMove} activeColors={activeColors} myColor={myColor} isRolling={isRolling} players={players} activeStickers={activeStickers} playSticker={playSticker} rollId={rollId} onRoll={onRoll} isOnline={isOnline} setIsRolling={setIsRolling} missedTurns={missedTurns} />
+        <PlayerBase color={COLORS.GREEN} position="top-right" tokens={tokens} turn={turn} diceRolled={diceRolled} diceValue={diceValue} onMoveToken={onMoveToken} isValidMove={isValidMove} activeColors={activeColors} myColor={myColor} isRolling={isRolling} players={players} activeStickers={activeStickers} playSticker={playSticker} rollId={rollId} onRoll={onRoll} isOnline={isOnline} setIsRolling={setIsRolling} missedTurns={missedTurns} />
+        <PlayerBase color={COLORS.BLUE} position="bottom-left" tokens={tokens} turn={turn} diceRolled={diceRolled} diceValue={diceValue} onMoveToken={onMoveToken} isValidMove={isValidMove} activeColors={activeColors} myColor={myColor} isRolling={isRolling} players={players} activeStickers={activeStickers} playSticker={playSticker} rollId={rollId} onRoll={onRoll} isOnline={isOnline} setIsRolling={setIsRolling} missedTurns={missedTurns} />
+        <PlayerBase color={COLORS.YELLOW} position="bottom-right" tokens={tokens} turn={turn} diceRolled={diceRolled} diceValue={diceValue} onMoveToken={onMoveToken} isValidMove={isValidMove} activeColors={activeColors} myColor={myColor} isRolling={isRolling} players={players} activeStickers={activeStickers} playSticker={playSticker} rollId={rollId} onRoll={onRoll} isOnline={isOnline} setIsRolling={setIsRolling} missedTurns={missedTurns} />
         
         {/* The Center Home */}
         <Home />

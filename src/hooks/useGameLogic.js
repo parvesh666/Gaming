@@ -48,6 +48,7 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
   const [winner, setWinner] = useState(null);
   const [isAnimating, setIsAnimating] = useState(false);
   const [consecutiveSixes, setConsecutiveSixes] = useState(0);
+  const [missedTurns, setMissedTurns] = useState({});
 
   const isAnimatingRef = useRef(isAnimating);
   const latestTokens = useRef(tokens);
@@ -70,6 +71,7 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
     setDiceRolled(false);
     setWinner(null);
     setConsecutiveSixes(0);
+    setMissedTurns({});
     setIsAnimating(false);
   }, [playerCount]);
 
@@ -164,6 +166,7 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
           setWinner(gameState.winner);
         }
         if (gameState.activeColors) setActiveColors(gameState.activeColors);
+        if (gameState.missedTurns) setMissedTurns(gameState.missedTurns);
 
         setIsAnimating(false);
       };
@@ -186,6 +189,25 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
     setDiceValue(null);
     setDiceRolled(false);
     setConsecutiveSixes(0);
+  };
+
+  const removePlayerLocal = (colorToRemove) => {
+    const index = activeColors.indexOf(colorToRemove);
+    if (index !== -1) {
+      const newActiveColors = [...activeColors];
+      newActiveColors.splice(index, 1);
+      setActiveColors(newActiveColors);
+      setTokens(prev => prev.filter(t => t.color !== colorToRemove));
+      
+      if (newActiveColors.length === 1) {
+        setWinner(newActiveColors[0]);
+      } else if (turn === colorToRemove) {
+        setTurn(newActiveColors[index % newActiveColors.length]);
+        setDiceValue(null);
+        setDiceRolled(false);
+        setConsecutiveSixes(0);
+      }
+    }
   };
 
   // Check if there's an opponent block (2+ same-color tokens) at a board position
@@ -230,15 +252,27 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
     return true;
   };
 
-  const rollDice = (val) => {
+  const rollDice = (val, isAuto = false) => {
     if (isOnline) {
       if (diceRolled || winner || isAnimating) return;
       if (myColor && turn !== myColor) return;
-      socket.emit('request_roll', { roomId });
+      socket.emit('request_roll', { roomId, isAuto });
       return;
     }
 
     if (diceRolled || winner || isAnimating) return;
+
+    if (isAuto) {
+      const newMissed = (missedTurns[turn] || 0) + 1;
+      if (newMissed >= 3) {
+        removePlayerLocal(turn);
+        return;
+      }
+      setMissedTurns(prev => ({ ...prev, [turn]: newMissed }));
+    } else {
+      setMissedTurns(prev => ({ ...prev, [turn]: 0 }));
+    }
+
     setDiceValue(val);
     setDiceRolled(true);
 
@@ -376,7 +410,7 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
     }
   }, [diceRolled, diceValue, turn, isAnimating, winner, isOnline, tokens]);
 
-  // Auto-roll dice after 40 seconds if the player doesn't roll
+  // Auto-roll dice after 30 seconds if the player doesn't roll
   useEffect(() => {
     if (!diceRolled && !winner && !isAnimating) {
       if (isOnline && myColor && turn !== myColor) {
@@ -385,12 +419,12 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
 
       const timer = setTimeout(() => {
         // Pass a random value for local mode. Online mode ignores the arg and requests server.
-        rollDice(Math.floor(Math.random() * 6) + 1);
-      }, 40000);
+        rollDice(Math.floor(Math.random() * 6) + 1, true);
+      }, 30000);
 
       return () => clearTimeout(timer);
     }
-  }, [diceRolled, turn, winner, isAnimating, isOnline, myColor]);
+  }, [diceRolled, turn, winner, isAnimating, isOnline, myColor, missedTurns]);
 
   return {
     tokens,
@@ -402,6 +436,7 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
     rollDice,
     moveToken,
     isValidMove,
-    activeColors
+    activeColors,
+    missedTurns
   };
 };

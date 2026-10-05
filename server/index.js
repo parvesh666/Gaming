@@ -124,15 +124,30 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('request_roll', ({ roomId }) => {
+  socket.on('request_roll', ({ roomId, isAuto }) => {
     const room = rooms[roomId];
     if (!room || room.state !== 'playing') return;
 
     const player = room.players.find(p => p.socketId === socket.id);
     if (!player) return;
 
-    const result = room.game.rollDice(player.color);
+    const result = room.game.rollDice(player.color, isAuto);
     if (result) {
+      if (result.kicked) {
+        const pIdx = room.players.findIndex(p => p.color === result.color);
+        if (pIdx !== -1) room.players.splice(pIdx, 1);
+
+        io.to(roomId).emit('player_left', { color: result.color, kicked: true });
+        io.to(roomId).emit('game_state_update', room.game.getState());
+
+        if (room.players.length === 0) {
+          delete rooms[roomId];
+        } else {
+          io.to(roomId).emit('room_updated', room);
+        }
+        return;
+      }
+
       io.to(roomId).emit('dice_rolled', { val: result.val, threeSixesPenalty: result.threeSixesPenalty });
       io.to(roomId).emit('game_state_update', room.game.getState());
 

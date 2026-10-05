@@ -10,6 +10,7 @@ class LudoGame {
     this.diceRolled = false;
     this.winner = null;
     this.consecutiveSixes = 0;
+    this.missedTurns = {};
   }
 
   getActiveColors(count) {
@@ -113,9 +114,19 @@ class LudoGame {
     return true;
   }
 
-  rollDice(requestedByColor) {
+  rollDice(requestedByColor, isAuto = false) {
     if (this.diceRolled || this.winner) return null;
     if (requestedByColor !== this.turn) return null;
+
+    if (isAuto) {
+      this.missedTurns[requestedByColor] = (this.missedTurns[requestedByColor] || 0) + 1;
+      if (this.missedTurns[requestedByColor] >= 3) {
+         this.removePlayer(requestedByColor);
+         return { kicked: true, color: requestedByColor };
+      }
+    } else {
+      this.missedTurns[requestedByColor] = 0;
+    }
 
     const val = Math.floor(Math.random() * 6) + 1;
 
@@ -193,7 +204,8 @@ class LudoGame {
       diceRolled: this.diceRolled,
       winner: this.winner,
       activeColors: this.activeColors,
-      consecutiveSixes: this.consecutiveSixes
+      consecutiveSixes: this.consecutiveSixes,
+      missedTurns: this.missedTurns
     };
   }
 }

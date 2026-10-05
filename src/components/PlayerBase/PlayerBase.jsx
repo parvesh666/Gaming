@@ -5,7 +5,7 @@ import Dice from '../Dice/Dice';
 import { STICKERS } from '../../utils/stickers';
 import { MessageCircle } from 'lucide-react';
 
-const PlayerBase = ({ color, position, tokens, turn, diceRolled, diceValue, onMoveToken, isValidMove, activeColors, myColor, isRolling, players, activeStickers, playSticker, rollId, onRoll, isOnline, setIsRolling }) => {
+const PlayerBase = ({ color, position, tokens, turn, diceRolled, diceValue, onMoveToken, isValidMove, activeColors, myColor, isRolling, players, activeStickers, playSticker, rollId, onRoll, isOnline, setIsRolling, missedTurns }) => {
   const [showStickerMenu, setShowStickerMenu] = useState(false);
   const isActive = activeColors.includes(color);
   const player = players?.find(p => p.color === color);
@@ -39,6 +39,7 @@ const PlayerBase = ({ color, position, tokens, turn, diceRolled, diceValue, onMo
   };
 
   const myPlayedStickers = activeStickers?.filter(s => s.color === color) || [];
+  const playerMissedTurns = missedTurns?.[color] || 0;
 
   return (
     <div 
@@ -48,6 +49,15 @@ const PlayerBase = ({ color, position, tokens, turn, diceRolled, diceValue, onMo
       {isActive && (
         <div className="player-label">
           {displayName.toUpperCase()} {myColor === color ? '(YOU)' : ''}
+          <div className="missed-turns-container">
+            {[0, 1, 2].map(i => (
+              <div 
+                key={i} 
+                className={`missed-turn-dot ${i < playerMissedTurns ? 'lost' : 'active'}`} 
+                title={`${3 - playerMissedTurns} chances remaining`}
+              />
+            ))}
+          </div>
         </div>
       )}
 
