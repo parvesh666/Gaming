@@ -38,21 +38,25 @@
 
 .token-red {
   --edge-color: #991b1b;
+  --glow-color: var(--color-red);
   background: radial-gradient(circle at 35% 35%, var(--color-red-light) 0%, var(--color-red) 45%, var(--color-red-dark) 100%);
 }
 
 .token-green {
   --edge-color: #166534;
+  --glow-color: var(--color-green);
   background: radial-gradient(circle at 35% 35%, var(--color-green-light) 0%, var(--color-green) 45%, var(--color-green-dark) 100%);
 }
 
 .token-blue {
   --edge-color: #1e3a8a;
+  --glow-color: var(--color-blue);
   background: radial-gradient(circle at 35% 35%, var(--color-blue-light) 0%, var(--color-blue) 45%, var(--color-blue-dark) 100%);
 }
 
 .token-yellow {
   --edge-color: #854d0e;
+  --glow-color: var(--color-yellow);
   background: radial-gradient(circle at 35% 35%, var(--color-yellow-light) 0%, var(--color-yellow) 45%, var(--color-yellow-dark) 100%);
 }
 
@@ -62,9 +66,9 @@
 }
 
 @keyframes pulse-highlight {
-  0% { transform: translateY(-4px) scale(1); box-shadow: 0 4px 0 var(--edge-color), 0 0 0 0 rgba(255, 255, 255, 0.7), 0 6px 8px rgba(0,0,0,0.5); }
-  50% { transform: translateY(-4px) scale(1.1); box-shadow: 0 4px 0 var(--edge-color), 0 0 0 10px rgba(255, 255, 255, 0), 0 6px 8px rgba(0,0,0,0.5); }
-  100% { transform: translateY(-4px) scale(1); box-shadow: 0 4px 0 var(--edge-color), 0 0 0 0 rgba(255, 255, 255, 0), 0 6px 8px rgba(0,0,0,0.5); }
+  0% { transform: translateY(-4px) scale(1); box-shadow: 0 4px 0 var(--edge-color), 0 0 0 0 var(--glow-color), 0 6px 8px rgba(0,0,0,0.5); filter: brightness(1); }
+  50% { transform: translateY(-4px) scale(1.1); box-shadow: 0 4px 0 var(--edge-color), 0 0 15px 4px var(--glow-color), 0 6px 8px rgba(0,0,0,0.5); filter: brightness(1.2); }
+  100% { transform: translateY(-4px) scale(1); box-shadow: 0 4px 0 var(--edge-color), 0 0 0 0 var(--glow-color), 0 6px 8px rgba(0,0,0,0.5); filter: brightness(1); }
 }
 
 @keyframes land-bounce {
