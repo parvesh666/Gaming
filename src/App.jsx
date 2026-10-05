@@ -64,6 +64,7 @@ function App() {
     turn,
     diceValue,
     diceRolled,
+    rollId,
     winner,
     rollDice,
     moveToken,
@@ -128,6 +129,7 @@ function App() {
               turn={turn} 
               diceValue={diceValue} 
               diceRolled={diceRolled} 
+              rollId={rollId}
               onRoll={rollDice}
               boostSix={allInBase}
               isMyTurn={!isOnline || turn === myColor}

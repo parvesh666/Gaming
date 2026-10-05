@@ -39,6 +39,7 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
   const [turn, setTurn] = useState(activeColors[0]);
   const [diceValue, setDiceValue] = useState(null);
   const [diceRolled, setDiceRolled] = useState(false);
+  const [rollId, setRollId] = useState(0);
   const [winner, setWinner] = useState(null);
   const [isAnimating, setIsAnimating] = useState(false);
   const [consecutiveSixes, setConsecutiveSixes] = useState(0);
@@ -93,6 +94,10 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
         setTurn(newState.turn);
         setDiceValue(newState.diceValue);
         setDiceRolled(newState.diceRolled);
+        if (newState.diceRolled && !newState.previousDiceRolled) {
+          // If server sends a new roll state
+          setRollId(prev => prev + 1);
+        }
         if (newState.winner) setWinner(newState.winner);
         if (newState.activeColors) setActiveColors(newState.activeColors);
         
@@ -385,6 +390,7 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
     turn,
     diceValue,
     diceRolled,
+    rollId,
     winner,
     rollDice,
     moveToken,

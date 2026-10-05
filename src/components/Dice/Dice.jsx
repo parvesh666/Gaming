@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { RoundedBox, Environment, ContactShadows } from '@react-three/drei';
+import { Environment, ContactShadows } from '@react-three/drei';
 import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three-stdlib';
 import './Dice.css';
 import { playRollSound } from '../../utils/audio';
 
@@ -52,18 +53,20 @@ function createDiceFace(number) {
   
   const texture = new THREE.CanvasTexture(canvas);
   texture.anisotropy = 16;
+  texture.colorSpace = THREE.SRGBColorSpace;
   return texture;
 }
 
 const getRotationForNumber = (num) => {
-  // BoxGeometry materials mapping: [Right, Left, Top, Bottom, Front, Back]
-  // We want the resulting number to be on the Front face (+Z) facing the camera.
-  // Face 0 (Right, 1): +X -> +Z (Y = -PI/2)
-  // Face 1 (Left, 6): -X -> +Z (Y = PI/2)
-  // Face 2 (Top, 2): +Y -> +Z (X = PI/2)
-  // Face 3 (Bottom, 5): -Y -> +Z (X = -PI/2)
-  // Face 4 (Front, 3): +Z -> +Z (No rotation)
-  // Face 5 (Back, 4): -Z -> +Z (Y = PI)
+  // RoundedBoxGeometry from three-stdlib preserves standard BoxGeometry groups: 
+  // [Right, Left, Top, Bottom, Front, Back]
+  // Target: Face +Z (Front) to camera.
+  // 0: Right (1): +X -> +Z (rotate Y by -90)
+  // 1: Left (6): -X -> +Z (rotate Y by +90)
+  // 2: Top (2): +Y -> +Z (rotate X by +90)
+  // 3: Bottom (5): -Y -> +Z (rotate X by -90)
+  // 4: Front (3): +Z -> +Z (no rotation)
+  // 5: Back (4): -Z -> +Z (rotate Y by +180)
   switch (num) {
     case 1: return [0, -Math.PI / 2, 0];
     case 6: return [0, Math.PI / 2, 0];
@@ -75,34 +78,45 @@ const getRotationForNumber = (num) => {
   }
 };
 
-const DiceMesh = ({ forceValue, onAnimComplete }) => {
+const DiceMesh = ({ forceValue, rollId, onAnimComplete }) => {
   const diceRef = useRef();
+  const geometryRef = useRef();
   
   const materials = useMemo(() => {
     return [
-      new THREE.MeshStandardMaterial({ map: createDiceFace(1), roughness: 0.2, metalness: 0.1 }),
-      new THREE.MeshStandardMaterial({ map: createDiceFace(6), roughness: 0.2, metalness: 0.1 }),
-      new THREE.MeshStandardMaterial({ map: createDiceFace(2), roughness: 0.2, metalness: 0.1 }),
-      new THREE.MeshStandardMaterial({ map: createDiceFace(5), roughness: 0.2, metalness: 0.1 }),
-      new THREE.MeshStandardMaterial({ map: createDiceFace(3), roughness: 0.2, metalness: 0.1 }),
-      new THREE.MeshStandardMaterial({ map: createDiceFace(4), roughness: 0.2, metalness: 0.1 }),
+      new THREE.MeshStandardMaterial({ map: createDiceFace(1), roughness: 0.4, metalness: 0.1 }),
+      new THREE.MeshStandardMaterial({ map: createDiceFace(6), roughness: 0.4, metalness: 0.1 }),
+      new THREE.MeshStandardMaterial({ map: createDiceFace(2), roughness: 0.4, metalness: 0.1 }),
+      new THREE.MeshStandardMaterial({ map: createDiceFace(5), roughness: 0.4, metalness: 0.1 }),
+      new THREE.MeshStandardMaterial({ map: createDiceFace(3), roughness: 0.4, metalness: 0.1 }),
+      new THREE.MeshStandardMaterial({ map: createDiceFace(4), roughness: 0.4, metalness: 0.1 }),
     ];
   }, []);
+
+  useEffect(() => {
+    return () => {
+      materials.forEach(mat => {
+        if (mat.map) mat.map.dispose();
+        mat.dispose();
+      });
+      if (geometryRef.current) geometryRef.current.dispose();
+    };
+  }, [materials]);
 
   const animating = useRef(false);
   const startTime = useRef(0);
   const startRot = useRef([0, 0, 0]);
   const randomSpins = useRef([0, 0, 0]);
+  const targetRot = useRef([0, 0, 0]);
 
-  const prevForceValue = useRef(forceValue);
-  
   useEffect(() => {
-    if (forceValue && forceValue !== prevForceValue.current) {
+    if (rollId > 0 && forceValue) {
       animating.current = true;
       playRollSound();
       
       const baseRot = getRotationForNumber(forceValue);
-      // Random spins for a chaotic physical roll
+      targetRot.current = baseRot;
+      
       randomSpins.current = [
         baseRot[0] + Math.PI * 2 * (Math.floor(Math.random() * 3) + 2),
         baseRot[1] + Math.PI * 2 * (Math.floor(Math.random() * 3) + 2),
@@ -116,67 +130,69 @@ const DiceMesh = ({ forceValue, onAnimComplete }) => {
       ];
       
       startTime.current = performance.now();
-      
-      setTimeout(() => {
-        animating.current = false;
-        // Snap precisely to avoid floating point errors
-        diceRef.current.rotation.set(...baseRot);
-        diceRef.current.position.z = 0;
-        if (onAnimComplete) onAnimComplete();
-      }, 800);
     }
-    prevForceValue.current = forceValue;
-  }, [forceValue, onAnimComplete]);
+  }, [rollId, forceValue]);
 
   useFrame(() => {
     if (animating.current && diceRef.current) {
       const now = performance.now();
       let t = (now - startTime.current) / 800;
-      if (t > 1) t = 1;
-      
-      // Easing (easeOutCubic)
-      const ease = 1 - Math.pow(1 - t, 3);
-      
-      diceRef.current.rotation.x = THREE.MathUtils.lerp(startRot.current[0], randomSpins.current[0], ease);
-      diceRef.current.rotation.y = THREE.MathUtils.lerp(startRot.current[1], randomSpins.current[1], ease);
-      diceRef.current.rotation.z = THREE.MathUtils.lerp(startRot.current[2], randomSpins.current[2], ease);
-      
-      // Bounce effect on Z axis since it's facing camera directly
-      const bounce = Math.abs(Math.sin(t * Math.PI * 3)) * (1 - ease) * 1.5;
-      diceRef.current.position.z = bounce;
+      if (t >= 1) {
+        t = 1;
+        animating.current = false;
+        diceRef.current.rotation.set(...targetRot.current);
+        diceRef.current.position.z = 0;
+        if (onAnimComplete) onAnimComplete();
+      } else {
+        const ease = 1 - Math.pow(1 - t, 3);
+        
+        diceRef.current.rotation.x = THREE.MathUtils.lerp(startRot.current[0], randomSpins.current[0], ease);
+        diceRef.current.rotation.y = THREE.MathUtils.lerp(startRot.current[1], randomSpins.current[1], ease);
+        diceRef.current.rotation.z = THREE.MathUtils.lerp(startRot.current[2], randomSpins.current[2], ease);
+        
+        const bounce = Math.abs(Math.sin(t * Math.PI * 3)) * (1 - ease) * 1.5;
+        diceRef.current.position.z = bounce;
+      }
     }
   });
 
-  // Initial rotation based on initial value
   useEffect(() => {
-    if (diceRef.current) {
+    if (!animating.current && diceRef.current) {
        diceRef.current.rotation.set(...getRotationForNumber(forceValue || 6));
+    }
+  }, []); // Only on mount
+
+  // Build Geometry once
+  useEffect(() => {
+    if (!geometryRef.current) {
+      geometryRef.current = new RoundedBoxGeometry(2, 2, 2, 4, 0.3);
+      if (diceRef.current) {
+        diceRef.current.geometry = geometryRef.current;
+      }
     }
   }, []);
 
   return (
-    <group>
-      <RoundedBox 
-        ref={diceRef} 
-        args={[2, 2, 2]} 
-        radius={0.3} 
-        smoothness={4} 
-        material={materials}
-        castShadow
-      />
-    </group>
+    <mesh ref={diceRef} castShadow material={materials}>
+      <roundedBoxGeometry args={[2, 2, 2, 4, 0.3]} />
+    </mesh>
   );
 };
 
-const Dice = ({ onRoll, disabled, forceValue, boostSix }) => {
+const Dice = ({ onRoll, disabled, forceValue, rollId, boostSix }) => {
   const [rolling, setRolling] = useState(false);
+  const prevRollId = useRef(rollId);
+
+  useEffect(() => {
+    if (rollId > 0 && rollId !== prevRollId.current) {
+      setRolling(true);
+      prevRollId.current = rollId;
+    }
+  }, [rollId]);
 
   const handleRollClick = () => {
     if (rolling || disabled) return;
     
-    // Instead of local animation, just notify parent immediately.
-    // Parent will update forceValue (either locally or via server), 
-    // which will trigger the useEffect animation in DiceMesh.
     if (onRoll) {
        let finalValue = Math.floor(Math.random() * 6) + 1;
        if (boostSix && Math.random() < 0.5) {
@@ -185,12 +201,6 @@ const Dice = ({ onRoll, disabled, forceValue, boostSix }) => {
        onRoll(finalValue);
     }
   };
-
-  useEffect(() => {
-    if (forceValue && !rolling) {
-      setRolling(true);
-    }
-  }, [forceValue]);
 
   return (
     <div 
@@ -205,7 +215,7 @@ const Dice = ({ onRoll, disabled, forceValue, boostSix }) => {
       }}
     >
       <Canvas shadows camera={{ position: [0, 0, 6], fov: 35 }}>
-        <ambientLight intensity={0.6} />
+        <ambientLight intensity={0.8} />
         <directionalLight 
           position={[2, 2, 5]} 
           intensity={1.2} 
@@ -214,13 +224,13 @@ const Dice = ({ onRoll, disabled, forceValue, boostSix }) => {
         />
         <DiceMesh 
           forceValue={forceValue} 
+          rollId={rollId}
           onAnimComplete={() => setRolling(false)} 
         />
-        {/* Shadow behind the dice to act like a 2D drop shadow */}
         <ContactShadows 
           position={[0, 0, -1.2]} 
           rotation={[Math.PI / 2, 0, 0]}
-          opacity={0.7} 
+          opacity={0.5} 
           scale={5} 
           blur={1.5} 
           far={2} 
