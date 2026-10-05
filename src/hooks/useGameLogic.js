@@ -85,7 +85,6 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
       const handleDiceRolled = ({ val }) => {
         setDiceValue(val);
         setDiceRolled(true);
-        playRollSound();
       };
 
       const handleTokenMoved = async ({ tokenId, from, to, gameState }) => {
@@ -211,7 +210,6 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
     if (diceRolled || winner || isAnimating) return;
     setDiceValue(val);
     setDiceRolled(true);
-    playRollSound();
 
     // Three consecutive sixes penalty
     if (val === 6) {

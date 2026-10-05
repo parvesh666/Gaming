@@ -4,20 +4,26 @@ export const playRollSound = () => {
     if (!AudioContext) return;
     const ctx = new AudioContext();
     
-    // Create 4 quick rattling sounds for the dice
-    for (let i = 0; i < 4; i++) {
+    // Simulate dice rolling with 5 softer, distinct "clacks" spread over 400ms
+    for (let i = 0; i < 5; i++) {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      osc.type = 'square';
-      const startTime = ctx.currentTime + i * 0.12;
-      osc.frequency.setValueAtTime(150 + Math.random() * 50, startTime);
+      // Triangle wave is much softer than square
+      osc.type = 'triangle';
+      
+      const startTime = ctx.currentTime + i * 0.08;
+      // Higher frequency that quickly drops creates a "clack" sound
+      osc.frequency.setValueAtTime(600 + Math.random() * 200, startTime);
+      osc.frequency.exponentialRampToValueAtTime(100, startTime + 0.03);
+      
       gain.gain.setValueAtTime(0, startTime);
-      gain.gain.linearRampToValueAtTime(0.2, startTime + 0.01);
-      gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.08);
+      gain.gain.linearRampToValueAtTime(0.15, startTime + 0.005);
+      gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.03);
+      
       osc.connect(gain);
       gain.connect(ctx.destination);
       osc.start(startTime);
-      osc.stop(startTime + 0.1);
+      osc.stop(startTime + 0.04);
     }
   } catch (e) {
     console.log("Audio not supported or interaction needed first", e);

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { playRollSound } from '../../utils/audio';
 import './Dice.css';
 
 const Dice = ({ onRoll, disabled, forceValue, boostSix }) => {
@@ -10,6 +11,7 @@ const Dice = ({ onRoll, disabled, forceValue, boostSix }) => {
   const rollDice = () => {
     if (rolling || disabled) return;
     setRolling(true);
+    playRollSound();
     
     // Calculate final value immediately
     let finalValue = Math.floor(Math.random() * 6) + 1;
@@ -34,8 +36,21 @@ const Dice = ({ onRoll, disabled, forceValue, boostSix }) => {
     return <div className={`dice-face face-${val} dice-value-${val}`}>{dots}</div>;
   };
 
+  // Handle animation and sound for opponent's online roll
+  const prevForceValue = useRef(forceValue);
+  useEffect(() => {
+    if (forceValue && forceValue !== prevForceValue.current && disabled) {
+      setRolling(true);
+      playRollSound();
+      setTimeout(() => {
+        setRolling(false);
+      }, 600);
+    }
+    prevForceValue.current = forceValue;
+  }, [forceValue, disabled]);
+
   return (
-    <div className={`dice-container ${rolling ? 'rolling' : ''} ${disabled ? 'disabled' : ''}`} onClick={rollDice}>
+    <div className={`dice-container ${rolling ? 'rolling' : ''} ${disabled && !rolling ? 'disabled' : ''}`} onClick={rollDice}>
       <div className={`dice-cube show-${displayValue}`}>
         {renderFace(1)}
         {renderFace(2)}
