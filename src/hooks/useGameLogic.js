@@ -12,7 +12,12 @@ const initialTokens = Object.values(COLORS).flatMap(color =>
 
 export const getTokenCoordinates = (token) => {
   if (token.distance === -1) return null;
-  if (token.distance === 56) return { row: 8, col: 8 };
+  if (token.distance === 56) {
+    if (token.color === COLORS.RED) return { row: 8, col: 7 };
+    if (token.color === COLORS.GREEN) return { row: 7, col: 8 };
+    if (token.color === COLORS.YELLOW) return { row: 8, col: 9 };
+    if (token.color === COLORS.BLUE) return { row: 9, col: 8 };
+  }
   
   if (token.distance >= 51) {
     const stretchIndex = token.distance - 51;
