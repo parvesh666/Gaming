@@ -56,7 +56,6 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
 
   // Reset game state when playerCount changes (fixes 2P/3P showing 4 players)
   useEffect(() => {
-    if (isOnline) return; // Online state comes from server
     const newActiveColors = getActiveColorsForCount(playerCount);
     setActiveColors(newActiveColors);
     setTokens(initialTokens.filter(t => newActiveColors.includes(t.color)));
@@ -66,7 +65,7 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
     setWinner(null);
     setConsecutiveSixes(0);
     setIsAnimating(false);
-  }, [playerCount, isOnline]);
+  }, [playerCount]);
 
   // Play turn sound when it becomes our turn
   const isFirstRender = useRef(true);
