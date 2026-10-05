@@ -10,22 +10,17 @@ const Dice = ({ onRoll, disabled, forceValue, boostSix }) => {
 
   const rollDice = () => {
     if (rolling || disabled) return;
-    setRolling(true);
-    playRollSound();
     
-    // Calculate final value immediately
-    let finalValue = Math.floor(Math.random() * 6) + 1;
-    // Boost chances of rolling a 6 if requested (~58% overall chance)
-    if (boostSix && Math.random() < 0.5) {
-      finalValue = 6;
+    // Instead of local animation, just notify parent immediately.
+    // Parent will update forceValue (either locally or via server), 
+    // which will trigger the useEffect animation.
+    if (onRoll) {
+       let finalValue = Math.floor(Math.random() * 6) + 1;
+       if (boostSix && Math.random() < 0.5) {
+         finalValue = 6;
+       }
+       onRoll(finalValue);
     }
-
-    // Let the 3D CSS animation run for 600ms, then snap to the result
-    setTimeout(() => {
-      setInternalValue(finalValue);
-      setRolling(false);
-      if (onRoll) onRoll(finalValue);
-    }, 600);
   };
 
   const renderFace = (val) => {
@@ -36,18 +31,19 @@ const Dice = ({ onRoll, disabled, forceValue, boostSix }) => {
     return <div className={`dice-face face-${val} dice-value-${val}`}>{dots}</div>;
   };
 
-  // Handle animation and sound for opponent's online roll
+  // Handle animation and sound for all rolls (local and online)
   const prevForceValue = useRef(forceValue);
   useEffect(() => {
-    if (forceValue && forceValue !== prevForceValue.current && disabled) {
+    if (forceValue && forceValue !== prevForceValue.current) {
       setRolling(true);
       playRollSound();
+      setInternalValue(forceValue);
       setTimeout(() => {
         setRolling(false);
       }, 600);
     }
     prevForceValue.current = forceValue;
-  }, [forceValue, disabled]);
+  }, [forceValue]);
 
   return (
     <div className={`dice-container ${rolling ? 'rolling' : ''} ${disabled && !rolling ? 'disabled' : ''}`} onClick={rollDice}>
