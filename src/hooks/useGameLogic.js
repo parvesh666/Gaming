@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { COLORS, START_INDICES, SAFE_POSITIONS, BOARD_PATH, HOME_STRETCHES } from '../utils/constants';
+import { playRollSound, playMoveSound } from '../utils/audio';
 
 const initialTokens = Object.values(COLORS).flatMap(color => 
   [0, 1, 2, 3].map(id => ({
@@ -84,6 +85,7 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
       const handleDiceRolled = ({ val }) => {
         setDiceValue(val);
         setDiceRolled(true);
+        playRollSound();
       };
 
       const handleTokenMoved = async ({ tokenId, from, to, gameState }) => {
@@ -97,6 +99,7 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
           if (from === -1) {
             currentTokens[tokenIndex] = { ...currentTokens[tokenIndex], distance: 0 };
             setTokens([...currentTokens]);
+            playMoveSound();
             await delay(250);
             from = 0;
           }
@@ -104,6 +107,7 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
           for (let d = from + 1; d <= to; d++) {
             currentTokens[tokenIndex] = { ...currentTokens[tokenIndex], distance: d };
             setTokens([...currentTokens]);
+            playMoveSound();
             await delay(250);
           }
         }
@@ -192,6 +196,7 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
     if (diceRolled || winner || isAnimating) return;
     setDiceValue(val);
     setDiceRolled(true);
+    playRollSound();
 
     // Three consecutive sixes penalty
     if (val === 6) {
@@ -243,6 +248,7 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
       currentTokens = [...currentTokens];
       currentTokens[tokenIndex] = { ...currentTokens[tokenIndex], distance: 0 };
       setTokens(currentTokens);
+      playMoveSound();
       await delay(250);
       currentDistance = 0;
     } else {
@@ -250,6 +256,7 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
         currentTokens = [...currentTokens];
         currentTokens[tokenIndex] = { ...currentTokens[tokenIndex], distance: d };
         setTokens(currentTokens);
+        playMoveSound();
         await delay(250);
       }
       currentDistance = targetDistance;
