@@ -49,6 +49,25 @@ class LudoGame {
     this.diceRolled = false;
   }
 
+  removePlayer(color) {
+    this.tokens = this.tokens.filter(t => t.color !== color);
+    
+    const index = this.activeColors.indexOf(color);
+    if (index !== -1) {
+      this.activeColors.splice(index, 1);
+      
+      if (this.activeColors.length === 1) {
+        this.winner = this.activeColors[0];
+      } else if (this.activeColors.length > 1) {
+        if (this.turn === color) {
+          this.turn = this.activeColors[index % this.activeColors.length];
+          this.diceValue = null;
+          this.diceRolled = false;
+        }
+      }
+    }
+  }
+
   isValidMove(token, roll) {
     if (token.distance === 56) return false;
     if (token.distance === -1) return roll === 6;

@@ -23,12 +23,12 @@ export const getTokenCoordinates = (token) => {
   return BOARD_PATH[pathIndex];
 };
 
-export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, roomId = null) => {
-  const activeColors = (() => {
+export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, roomId = null, myColor = null) => {
+  const [activeColors, setActiveColors] = useState(() => {
     if (playerCount === 2) return [COLORS.RED, COLORS.YELLOW];
     if (playerCount === 3) return [COLORS.RED, COLORS.GREEN, COLORS.YELLOW];
     return [COLORS.RED, COLORS.GREEN, COLORS.YELLOW, COLORS.BLUE];
-  })();
+  });
 
   const [tokens, setTokens] = useState(() => 
     initialTokens.filter(t => activeColors.includes(t.color))
@@ -57,6 +57,7 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
         setDiceValue(newState.diceValue);
         setDiceRolled(newState.diceRolled);
         if (newState.winner) setWinner(newState.winner);
+        if (newState.activeColors) setActiveColors(newState.activeColors);
         
         if (!isAnimatingRef.current) {
            setTokens(newState.tokens);
@@ -96,6 +97,7 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
         setDiceValue(gameState.diceValue);
         setDiceRolled(gameState.diceRolled);
         if (gameState.winner) setWinner(gameState.winner);
+        if (gameState.activeColors) setActiveColors(gameState.activeColors);
 
         setIsAnimating(false);
       };
@@ -129,6 +131,7 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
   const rollDice = (val) => {
     if (isOnline) {
       if (diceRolled || winner || isAnimating) return;
+      if (myColor && turn !== myColor) return;
       socket.emit('request_roll', { roomId });
       return;
     }
@@ -148,6 +151,7 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
   const moveToken = async (tokenId) => {
     if (isOnline) {
       if (!diceRolled || !diceValue || isAnimating) return;
+      if (myColor && turn !== myColor) return;
       socket.emit('request_move', { roomId, tokenId });
       return;
     }

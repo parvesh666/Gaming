@@ -163,6 +163,44 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('leave_game', ({ roomId }) => {
+    const room = rooms[roomId];
+    if (!room) return;
+
+    const playerIndex = room.players.findIndex(p => p.socketId === socket.id);
+    if (playerIndex !== -1) {
+      const player = room.players[playerIndex];
+      
+      if (room.state === 'playing') {
+        room.game.removePlayer(player.color);
+        room.players.splice(playerIndex, 1);
+        
+        io.to(roomId).emit('player_left', { color: player.color });
+        io.to(roomId).emit('game_state_update', room.game.getState());
+        
+        if (room.players.length === 0) {
+          delete rooms[roomId];
+        } else {
+          io.to(roomId).emit('room_updated', room);
+        }
+      } else if (room.state === 'lobby') {
+        room.players.splice(playerIndex, 1);
+        if (room.players.length === 0) {
+          delete rooms[roomId];
+        } else {
+          if (!room.players.some(p => p.host)) {
+            room.players[0].host = true;
+          }
+          io.to(roomId).emit('room_updated', room);
+        }
+      }
+      
+      if (currentSessionId && sessions[currentSessionId]) {
+        sessions[currentSessionId].roomId = null;
+      }
+    }
+  });
+
   socket.on('disconnect', () => {
     if (currentSessionId && sessions[currentSessionId]) {
       const roomId = sessions[currentSessionId].roomId;

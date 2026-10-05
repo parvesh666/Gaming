@@ -16,10 +16,12 @@ const HomePage = ({ onStartGame, socket }) => {
       setRoomData(updatedRoom);
     });
 
-    socket.on('game_started', () => {
+    socket.on('game_started', (data) => {
       // In a full implementation, we'd transition to an online game state here
       // For now, this bridges to the local game state for UI testing
-      onStartGame(roomData.playerCount, true); 
+      const me = data.players.find(p => p.socketId === socket.id);
+      const myPlayerColor = me ? me.color : null;
+      onStartGame(roomData.playerCount, true, roomId, myPlayerColor); 
     });
 
     return () => {
@@ -99,7 +101,9 @@ const HomePage = ({ onStartGame, socket }) => {
 
   const startGame = () => {
     socket.emit('start_online_game', { roomId }); 
-    onStartGame(roomData.playerCount, true, roomId); 
+    const me = roomData.players.find(p => p.socketId === socket.id);
+    const myPlayerColor = me ? me.color : null;
+    onStartGame(roomData.playerCount, true, roomId, myPlayerColor); 
   };
 
   return (

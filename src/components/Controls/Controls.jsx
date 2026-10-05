@@ -3,7 +3,7 @@ import Dice from '../Dice/Dice';
 import './Controls.css';
 import { COLORS } from '../../utils/constants';
 
-const Controls = ({ turn, diceValue, diceRolled, onRoll, boostSix }) => {
+const Controls = ({ turn, diceValue, diceRolled, onRoll, boostSix, isMyTurn = true }) => {
   return (
     <div className="controls-panel glass-dark">
       <div className="turn-indicator">
@@ -16,7 +16,7 @@ const Controls = ({ turn, diceValue, diceRolled, onRoll, boostSix }) => {
       <div className="dice-section">
         <Dice 
           onRoll={onRoll} 
-          disabled={diceRolled} 
+          disabled={diceRolled || !isMyTurn} 
           forceValue={diceValue}
           boostSix={boostSix}
         />

@@ -12,6 +12,8 @@ function App() {
   const [isOnline, setIsOnline] = useState(false);
   const [roomId, setRoomId] = useState(null);
   const [socket, setSocket] = useState(null);
+  const [myColor, setMyColor] = useState(null);
+  const [notification, setNotification] = useState('');
   
   useEffect(() => {
     let sessionId = localStorage.getItem('ludo_session');
@@ -26,6 +28,8 @@ function App() {
     newSocket.on('connect', () => {
       newSocket.emit('register_session', { sessionId }, (response) => {
         if (response.restored) {
+          const me = response.roomData.players.find(p => p.socketId === newSocket.id);
+          setMyColor(me ? me.color : null);
           setPlayerCount(response.roomData.playerCount);
           setIsOnline(true);
           setRoomId(response.roomId);
@@ -37,10 +41,22 @@ function App() {
     return () => newSocket.close();
   }, []);
 
-  const handleStartGame = (count, online = false, roomCode = null) => {
+  useEffect(() => {
+    if (socket) {
+      const handlePlayerLeft = ({ color }) => {
+        setNotification(`Player ${color.toUpperCase()} has left the game!`);
+        setTimeout(() => setNotification(''), 3000);
+      };
+      socket.on('player_left', handlePlayerLeft);
+      return () => socket.off('player_left', handlePlayerLeft);
+    }
+  }, [socket]);
+
+  const handleStartGame = (count, online = false, roomCode = null, color = null) => {
     setPlayerCount(count);
     setIsOnline(online);
     setRoomId(roomCode);
+    setMyColor(color);
     setGameState('game');
   };
   const {
@@ -53,7 +69,7 @@ function App() {
     moveToken,
     isValidMove,
     activeColors
-  } = useGameLogic(playerCount, isOnline, socket, roomId);
+  } = useGameLogic(playerCount, isOnline, socket, roomId, myColor);
 
   // Determine if all tokens for the current player are in the base
   const myTokens = tokens.filter(t => t.color === turn);
@@ -72,7 +88,14 @@ function App() {
       <header className="app-header glass-dark" style={{ position: 'relative' }}>
         <h1>Ludo</h1>
         <button 
-          onClick={() => { setGameState('home'); window.location.reload(); }} 
+          onClick={() => { 
+            if (isOnline && socket) {
+              socket.emit('leave_game', { roomId });
+            }
+            localStorage.removeItem('ludo_session');
+            setGameState('home'); 
+            window.location.reload(); 
+          }} 
           className="back-btn glass"
         >
           Quit Game
@@ -80,6 +103,11 @@ function App() {
       </header>
       
       <main className="game-area">
+        {notification && (
+          <div className="notification glass-dark" style={{ position: 'absolute', top: '10px', left: '50%', transform: 'translateX(-50%)', padding: '10px 20px', borderRadius: '8px', zIndex: 1000, color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>
+            {notification}
+          </div>
+        )}
         {winner ? (
           <div className="winner-banner glass">
             <h2>Player {winner.toUpperCase()} Wins!</h2>
@@ -102,6 +130,7 @@ function App() {
               diceRolled={diceRolled} 
               onRoll={rollDice}
               boostSix={allInBase}
+              isMyTurn={!isOnline || turn === myColor}
             />
           </div>
         )}
