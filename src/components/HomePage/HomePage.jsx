@@ -9,6 +9,7 @@ const HomePage = ({ onStartGame, socket }) => {
   const [joinCode, setJoinCode] = useState('');
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [playerName, setPlayerName] = useState(() => localStorage.getItem('playerName') || '');
 
   useEffect(() => {
     if (!socket) return;
@@ -20,7 +21,7 @@ const HomePage = ({ onStartGame, socket }) => {
     socket.on('game_started', (data) => {
       const me = data.players.find(p => p.socketId === socket.id);
       const myPlayerColor = me ? me.color : null;
-      onStartGame(roomData.playerCount, true, roomId, myPlayerColor); 
+      onStartGame(roomData.playerCount, true, roomId, myPlayerColor, data.players); 
     });
 
     return () => {
@@ -30,8 +31,9 @@ const HomePage = ({ onStartGame, socket }) => {
   }, [socket, roomData, onStartGame, roomId]);
 
   const handleCreate = (count) => {
-    if (!socket) return;
-    socket.emit('create_room', { playerCount: count }, (response) => {
+    if (!socket || !playerName.trim()) return;
+    localStorage.setItem('playerName', playerName);
+    socket.emit('create_room', { playerCount: count, playerName }, (response) => {
       if (response.success) {
         setRoomData(response.roomData);
         setRoomId(response.roomId);
@@ -43,8 +45,9 @@ const HomePage = ({ onStartGame, socket }) => {
 
   const handleJoin = (e) => {
     e.preventDefault();
-    if (!socket || !joinCode.trim()) return;
-    socket.emit('join_room', { roomId: joinCode }, (response) => {
+    if (!socket || !joinCode.trim() || !playerName.trim()) return;
+    localStorage.setItem('playerName', playerName);
+    socket.emit('join_room', { roomId: joinCode, playerName }, (response) => {
       if (response.success) {
         setRoomData(response.roomData);
         setRoomId(response.roomId);
@@ -77,17 +80,29 @@ const HomePage = ({ onStartGame, socket }) => {
 
       {mode === 'select' && (
         <div className="mode-selection">
-          <button className="mode-btn glass" onClick={() => setMode('local_setup')}>
-            <Monitor size={48} />
-            <span>Local Game</span>
-            <small>Play on this device</small>
-          </button>
-          
-          <button className="mode-btn glass" onClick={() => setMode('online_setup')}>
-            <Globe size={48} />
-            <span>Play Online</span>
-            <small>Play with friends</small>
-          </button>
+          <div className="name-input-wrapper glass">
+            <h3>Enter Your Name</h3>
+            <input 
+              type="text" 
+              placeholder="Your Name" 
+              value={playerName} 
+              onChange={(e) => setPlayerName(e.target.value)}
+              maxLength={15}
+            />
+          </div>
+          <div style={{display:'flex', gap:'16px'}}>
+            <button className="mode-btn glass" onClick={() => playerName.trim() && setMode('local_setup')} disabled={!playerName.trim()}>
+              <Monitor size={48} />
+              <span>Local Game</span>
+              <small>Play on this device</small>
+            </button>
+            
+            <button className="mode-btn glass" onClick={() => playerName.trim() && setMode('online_setup')} disabled={!playerName.trim()}>
+              <Globe size={48} />
+              <span>Play Online</span>
+              <small>Play with friends</small>
+            </button>
+          </div>
         </div>
       )}
 
@@ -168,7 +183,7 @@ const HomePage = ({ onStartGame, socket }) => {
                   return (
                     <div key={i} className={`player-slot filled ${player.socketId === socket?.id ? 'is-me' : ''}`}>
                       <Users size={24} />
-                      <span>Player {i + 1} {player.socketId === socket?.id && '(You)'}</span>
+                      <span>{player.playerName || `Player ${i + 1}`} {player.socketId === socket?.id && '(You)'}</span>
                       {player.host && <span className="host-badge">HOST</span>}
                     </div>
                   );

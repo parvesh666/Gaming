@@ -2,8 +2,10 @@ import React from 'react';
 import './PlayerBase.css';
 import Token from '../Token/Token';
 
-const PlayerBase = ({ color, position, tokens, turn, diceRolled, diceValue, onMoveToken, isValidMove, activeColors, myColor, isRolling }) => {
+const PlayerBase = ({ color, position, tokens, turn, diceRolled, diceValue, onMoveToken, isValidMove, activeColors, myColor, isRolling, players }) => {
   const isActive = activeColors.includes(color);
+  const player = players?.find(p => p.color === color);
+  const displayName = player?.playerName || `${color} player`;
   const baseTokens = isActive && tokens ? tokens.filter(t => t.color === color && t.distance === -1) : [];
   // Determine grid area based on position
   let gridArea = '';
@@ -31,7 +33,7 @@ const PlayerBase = ({ color, position, tokens, turn, diceRolled, diceValue, onMo
     >
       {isActive && (
         <div className="player-label">
-          {color.toUpperCase()} PLAYER {myColor === color ? '(YOU)' : ''}
+          {displayName.toUpperCase()} {myColor === color ? '(YOU)' : ''}
         </div>
       )}
       <div className="base-inner">

@@ -31,7 +31,7 @@ const generateRoomCode = () => {
 io.on('connection', (socket) => {
   let currentSessionId = null;
 
-  socket.on('register_session', ({ sessionId }, callback) => {
+  socket.on('register_session', ({ sessionId, playerName }, callback) => {
     currentSessionId = sessionId;
     
     if (sessions[sessionId] && sessions[sessionId].roomId) {
@@ -43,6 +43,7 @@ io.on('connection', (socket) => {
         if (player) {
           player.socketId = socket.id;
           player.connected = true;
+          if (playerName) player.playerName = playerName;
           socket.join(roomId);
           
           io.to(roomId).emit('room_updated', room);
@@ -61,11 +62,11 @@ io.on('connection', (socket) => {
     callback({ restored: false });
   });
 
-  socket.on('create_room', ({ playerCount }, callback) => {
+  socket.on('create_room', ({ playerCount, playerName }, callback) => {
     const roomId = generateRoomCode();
     rooms[roomId] = {
       playerCount,
-      players: [{ socketId: socket.id, sessionId: currentSessionId, host: true, connected: true }],
+      players: [{ socketId: socket.id, sessionId: currentSessionId, host: true, connected: true, playerName }],
       state: 'lobby'
     };
     if (currentSessionId) sessions[currentSessionId].roomId = roomId;
@@ -91,7 +92,7 @@ io.on('connection', (socket) => {
       return callback({ success: false, message: 'Already in room' });
     }
 
-    room.players.push({ socketId: socket.id, sessionId: currentSessionId, host: false, connected: true });
+    room.players.push({ socketId: socket.id, sessionId: currentSessionId, host: false, connected: true, playerName });
     if (currentSessionId) sessions[currentSessionId].roomId = roomId;
     
     socket.join(roomId);

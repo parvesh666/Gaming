@@ -3,8 +3,10 @@ import Dice from '../Dice/Dice';
 import './Controls.css';
 import { COLORS } from '../../utils/constants';
 
-const Controls = ({ turn, diceValue, diceRolled, rollId, onRoll, isMyTurn = true, setIsRolling }) => {
+const Controls = ({ turn, diceValue, diceRolled, rollId, onRoll, isMyTurn = true, setIsRolling, players }) => {
   const [isRolling, setLocalIsRolling] = useState(false);
+  const currentPlayer = players?.find(p => p.color === turn);
+  const displayName = currentPlayer?.playerName || `${turn} player`;
   
   const handleRollingStateChange = (state) => {
     setLocalIsRolling(state);
@@ -15,7 +17,7 @@ const Controls = ({ turn, diceValue, diceRolled, rollId, onRoll, isMyTurn = true
       <div className="turn-indicator">
         <h3>Now it's</h3>
         <div className={`turn-badge bg-${turn}`}>
-          {turn.toUpperCase()} PLAYER'S
+          {displayName.toUpperCase()}'S
         </div>
         <h3>turn</h3>
       </div>

@@ -15,9 +15,11 @@ function App() {
   const [myColor, setMyColor] = useState(null);
   const [notification, setNotification] = useState('');
   const [isRolling, setIsRolling] = useState(false);
+  const [players, setPlayers] = useState([]);
   
   useEffect(() => {
     let sessionId = localStorage.getItem('ludo_session');
+    let playerName = localStorage.getItem('playerName');
     if (!sessionId) {
       sessionId = Math.random().toString(36).substring(2, 15);
       localStorage.setItem('ludo_session', sessionId);
@@ -27,11 +29,12 @@ function App() {
     setSocket(newSocket);
     
     newSocket.on('connect', () => {
-      newSocket.emit('register_session', { sessionId }, (response) => {
+      newSocket.emit('register_session', { sessionId, playerName }, (response) => {
         if (response.restored) {
           const me = response.roomData.players.find(p => p.socketId === newSocket.id);
           setMyColor(me ? me.color : null);
           setPlayerCount(response.roomData.playerCount);
+          setPlayers(response.roomData.players);
           setIsOnline(true);
           setRoomId(response.roomId);
           setGameState('game');
@@ -53,11 +56,12 @@ function App() {
     }
   }, [socket]);
 
-  const handleStartGame = (count, online = false, roomCode = null, color = null) => {
+  const handleStartGame = (count, online = false, roomCode = null, color = null, currentPlayers = []) => {
     setPlayerCount(count);
     setIsOnline(online);
     setRoomId(roomCode);
     setMyColor(color);
+    setPlayers(currentPlayers);
     setGameState('game');
   };
   const {
@@ -127,6 +131,7 @@ function App() {
               activeColors={activeColors}
               myColor={myColor}
               isRolling={isRolling}
+              players={players}
             />
             <Controls 
               turn={turn} 
@@ -136,6 +141,7 @@ function App() {
               onRoll={rollDice}
               isMyTurn={!isOnline || turn === myColor}
               setIsRolling={setIsRolling}
+              players={players}
             />
           </div>
         )}
