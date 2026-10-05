@@ -1,19 +1,182 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { playRollSound } from '../../utils/audio';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { RoundedBox, Environment, ContactShadows } from '@react-three/drei';
+import * as THREE from 'three';
 import './Dice.css';
+import { playRollSound } from '../../utils/audio';
+
+function createDiceFace(number) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 256;
+  canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+  
+  // Background with subtle off-white for realism
+  ctx.fillStyle = '#f8f9fa';
+  ctx.fillRect(0, 0, 256, 256);
+  
+  // Subtle border/bevel shadow effect
+  ctx.strokeStyle = '#e2e8f0';
+  ctx.lineWidth = 12;
+  ctx.strokeRect(6, 6, 244, 244);
+
+  ctx.fillStyle = '#1e293b'; // dark pips
+  const drawDot = (x, y) => {
+    ctx.beginPath();
+    ctx.arc(x, y, 22, 0, Math.PI * 2);
+    ctx.fill();
+  };
+
+  const c = 128;
+  const l = 64;
+  const r = 192;
+  
+  if (number === 1) {
+    ctx.fillStyle = '#ef4444'; // Red center for 1 is common
+    ctx.beginPath();
+    ctx.arc(c, c, 34, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (number === 2) {
+    drawDot(l, l); drawDot(r, r);
+  } else if (number === 3) {
+    drawDot(l, l); drawDot(c, c); drawDot(r, r);
+  } else if (number === 4) {
+    drawDot(l, l); drawDot(r, r); drawDot(l, r); drawDot(r, l);
+  } else if (number === 5) {
+    drawDot(l, l); drawDot(r, r); drawDot(l, r); drawDot(r, l); drawDot(c, c);
+  } else if (number === 6) {
+    drawDot(l, 48); drawDot(r, 48);
+    drawDot(l, c); drawDot(r, c);
+    drawDot(l, 208); drawDot(r, 208);
+  }
+  
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.anisotropy = 16;
+  return texture;
+}
+
+const getRotationForNumber = (num) => {
+  // BoxGeometry materials mapping: [Right, Left, Top, Bottom, Front, Back]
+  // We want the resulting number to be on the Top face (+Y).
+  // Face 0 (Right, 1): +X -> +Y (Z = PI/2)
+  // Face 1 (Left, 6): -X -> +Y (Z = -PI/2)
+  // Face 2 (Top, 2): +Y -> +Y (No rotation)
+  // Face 3 (Bottom, 5): -Y -> +Y (X = PI)
+  // Face 4 (Front, 3): +Z -> +Y (X = -PI/2)
+  // Face 5 (Back, 4): -Z -> +Y (X = PI/2)
+  switch (num) {
+    case 1: return [0, 0, Math.PI / 2];
+    case 6: return [0, 0, -Math.PI / 2];
+    case 2: return [0, 0, 0];
+    case 5: return [Math.PI, 0, 0];
+    case 3: return [-Math.PI / 2, 0, 0];
+    case 4: return [Math.PI / 2, 0, 0];
+    default: return [0, 0, 0];
+  }
+};
+
+const DiceMesh = ({ forceValue, onAnimComplete }) => {
+  const diceRef = useRef();
+  
+  const materials = useMemo(() => {
+    return [
+      new THREE.MeshStandardMaterial({ map: createDiceFace(1), roughness: 0.2, metalness: 0.1 }),
+      new THREE.MeshStandardMaterial({ map: createDiceFace(6), roughness: 0.2, metalness: 0.1 }),
+      new THREE.MeshStandardMaterial({ map: createDiceFace(2), roughness: 0.2, metalness: 0.1 }),
+      new THREE.MeshStandardMaterial({ map: createDiceFace(5), roughness: 0.2, metalness: 0.1 }),
+      new THREE.MeshStandardMaterial({ map: createDiceFace(3), roughness: 0.2, metalness: 0.1 }),
+      new THREE.MeshStandardMaterial({ map: createDiceFace(4), roughness: 0.2, metalness: 0.1 }),
+    ];
+  }, []);
+
+  const animating = useRef(false);
+  const startTime = useRef(0);
+  const startRot = useRef([0, 0, 0]);
+  const randomSpins = useRef([0, 0, 0]);
+
+  const prevForceValue = useRef(forceValue);
+  
+  useEffect(() => {
+    if (forceValue && forceValue !== prevForceValue.current) {
+      animating.current = true;
+      playRollSound();
+      
+      const baseRot = getRotationForNumber(forceValue);
+      // Random spins for a chaotic physical roll
+      randomSpins.current = [
+        baseRot[0] + Math.PI * 2 * (Math.floor(Math.random() * 3) + 2),
+        baseRot[1] + Math.PI * 2 * (Math.floor(Math.random() * 3) + 2),
+        baseRot[2] + Math.PI * 2 * (Math.floor(Math.random() * 3) + 2),
+      ];
+      
+      startRot.current = [
+        diceRef.current.rotation.x % (Math.PI * 2),
+        diceRef.current.rotation.y % (Math.PI * 2),
+        diceRef.current.rotation.z % (Math.PI * 2),
+      ];
+      
+      startTime.current = performance.now();
+      
+      setTimeout(() => {
+        animating.current = false;
+        // Snap precisely to avoid floating point errors
+        diceRef.current.rotation.set(...baseRot);
+        diceRef.current.position.y = 0;
+        if (onAnimComplete) onAnimComplete();
+      }, 800);
+    }
+    prevForceValue.current = forceValue;
+  }, [forceValue, onAnimComplete]);
+
+  useFrame(() => {
+    if (animating.current && diceRef.current) {
+      const now = performance.now();
+      let t = (now - startTime.current) / 800;
+      if (t > 1) t = 1;
+      
+      // Easing (easeOutCubic)
+      const ease = 1 - Math.pow(1 - t, 3);
+      
+      diceRef.current.rotation.x = THREE.MathUtils.lerp(startRot.current[0], randomSpins.current[0], ease);
+      diceRef.current.rotation.y = THREE.MathUtils.lerp(startRot.current[1], randomSpins.current[1], ease);
+      diceRef.current.rotation.z = THREE.MathUtils.lerp(startRot.current[2], randomSpins.current[2], ease);
+      
+      // Bounce effect on Y axis
+      const bounce = Math.abs(Math.sin(t * Math.PI * 3)) * (1 - ease) * 1.5;
+      diceRef.current.position.y = bounce;
+    }
+  });
+
+  // Initial rotation based on initial value
+  useEffect(() => {
+    if (diceRef.current) {
+       diceRef.current.rotation.set(...getRotationForNumber(forceValue || 6));
+    }
+  }, []);
+
+  return (
+    <group>
+      <RoundedBox 
+        ref={diceRef} 
+        args={[2, 2, 2]} 
+        radius={0.3} 
+        smoothness={4} 
+        material={materials}
+        castShadow
+      />
+    </group>
+  );
+};
 
 const Dice = ({ onRoll, disabled, forceValue, boostSix }) => {
   const [rolling, setRolling] = useState(false);
-  const [internalValue, setInternalValue] = useState(6);
 
-  const displayValue = forceValue || internalValue;
-
-  const rollDice = () => {
+  const handleRollClick = () => {
     if (rolling || disabled) return;
     
     // Instead of local animation, just notify parent immediately.
     // Parent will update forceValue (either locally or via server), 
-    // which will trigger the useEffect animation.
+    // which will trigger the useEffect animation in DiceMesh.
     if (onRoll) {
        let finalValue = Math.floor(Math.random() * 6) + 1;
        if (boostSix && Math.random() < 0.5) {
@@ -23,38 +186,45 @@ const Dice = ({ onRoll, disabled, forceValue, boostSix }) => {
     }
   };
 
-  const renderFace = (val) => {
-    const dots = [];
-    for (let i = 0; i < val; i++) {
-      dots.push(<div key={i} className="dice-dot"></div>);
-    }
-    return <div className={`dice-face face-${val} dice-value-${val}`}>{dots}</div>;
-  };
-
-  // Handle animation and sound for all rolls (local and online)
-  const prevForceValue = useRef(forceValue);
   useEffect(() => {
-    if (forceValue && forceValue !== prevForceValue.current) {
+    if (forceValue && !rolling) {
       setRolling(true);
-      playRollSound();
-      setInternalValue(forceValue);
-      setTimeout(() => {
-        setRolling(false);
-      }, 600);
     }
-    prevForceValue.current = forceValue;
   }, [forceValue]);
 
   return (
-    <div className={`dice-container ${rolling ? 'rolling' : ''} ${disabled && !rolling ? 'disabled' : ''}`} onClick={rollDice}>
-      <div className={`dice-cube show-${displayValue}`}>
-        {renderFace(1)}
-        {renderFace(2)}
-        {renderFace(3)}
-        {renderFace(4)}
-        {renderFace(5)}
-        {renderFace(6)}
-      </div>
+    <div 
+      className={`dice-container-3d ${disabled && !rolling ? 'disabled' : ''}`} 
+      onClick={handleRollClick} 
+      style={{ 
+        width: '120px', 
+        height: '120px', 
+        cursor: disabled && !rolling ? 'not-allowed' : 'pointer', 
+        margin: '0 auto',
+        position: 'relative'
+      }}
+    >
+      <Canvas shadows camera={{ position: [0, 4, 4], fov: 40 }}>
+        <ambientLight intensity={0.6} />
+        <directionalLight 
+          position={[5, 10, 5]} 
+          intensity={1.2} 
+          castShadow 
+          shadow-mapSize={[1024, 1024]}
+        />
+        <DiceMesh 
+          forceValue={forceValue} 
+          onAnimComplete={() => setRolling(false)} 
+        />
+        <ContactShadows 
+          position={[0, -1.1, 0]} 
+          opacity={0.6} 
+          scale={5} 
+          blur={1.5} 
+          far={2} 
+        />
+        <Environment preset="city" />
+      </Canvas>
     </div>
   );
 };

@@ -358,7 +358,7 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
       if (validTokens.length === 1) {
         const timer = setTimeout(() => {
           moveToken(validTokens[0].id);
-        }, 600);
+        }, 800);
         return () => clearTimeout(timer);
       }
     }
