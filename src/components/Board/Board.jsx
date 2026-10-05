@@ -26,7 +26,7 @@ const Board = ({ tokens, turn, diceValue, diceRolled, onMoveToken, isValidMove, 
     const grouped = {};
     
     tokens
-      .filter(t => t.distance >= 0 && t.distance < 56)
+      .filter(t => t.distance >= 0 && t.distance <= 56)
       .forEach(token => {
         const coords = getTokenCoordinates(token);
         if (!coords) return;

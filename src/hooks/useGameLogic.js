@@ -320,7 +320,10 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
       }
     }
 
-    if (targetDistance === 56) playGoalSound();
+    if (targetDistance === 56) {
+      playGoalSound();
+      extraTurn = true;
+    }
 
     const myTokens = currentTokens.filter(t => t.color === turn);
     const hasWon = myTokens.every(t => t.distance === 56);

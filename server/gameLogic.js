@@ -171,6 +171,10 @@ class LudoGame {
       }
     }
 
+    if (token.distance === 56) {
+      extraTurn = true;
+    }
+
     const myTokens = this.tokens.filter(t => t.color === this.turn);
     const hasWon = myTokens.every(t => t.distance === 56);
     

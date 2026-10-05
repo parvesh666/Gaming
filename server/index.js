@@ -145,15 +145,23 @@ io.on('connection', (socket) => {
     const player = room.players.find(p => p.socketId === socket.id);
     if (!player) return;
 
+    const tokenBefore = room.game.tokens.find(t => t.id === tokenId);
+    const from = tokenBefore ? tokenBefore.distance : -1;
+
     const result = room.game.moveToken(tokenId, player.color);
     if (result !== false) {
+      const to = room.game.tokens.find(t => t.id === tokenId).distance;
+      
       // Consume dice immediately to prevent double-move exploits
       room.game.diceValue = null;
-      // Keep diceRolled=true to prevent re-rolling during animation
 
-      io.to(roomId).emit('game_state_update', room.game.getState());
+      // Emit token_moved so clients can animate before applying state
+      io.to(roomId).emit('token_moved', { tokenId, from, to, gameState: room.game.getState() });
 
       if (result.hasWon) return;
+
+      const animSteps = to - from > 0 ? (to - from) : 1;
+      const animTime = (animSteps * 250) + 200;
 
       setTimeout(() => {
         if (!result.extraTurn) {
@@ -162,7 +170,7 @@ io.on('connection', (socket) => {
           room.game.diceRolled = false;
         }
         io.to(roomId).emit('game_state_update', room.game.getState());
-      }, 1000);
+      }, animTime);
     }
   });
 
