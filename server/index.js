@@ -155,22 +155,19 @@ io.on('connection', (socket) => {
       // Consume dice immediately to prevent double-move exploits
       room.game.diceValue = null;
 
-      // Emit token_moved so clients can animate before applying state
-      io.to(roomId).emit('token_moved', { tokenId, from, to, gameState: room.game.getState() });
+      // Compute final state immediately
+      if (result.hasWon) {
+        // do nothing extra
+      } else if (!result.extraTurn) {
+        room.game.nextTurn();
+      } else {
+        room.game.diceRolled = false;
+      }
 
-      if (result.hasWon) return;
+      const finalGameState = room.game.getState();
 
-      const animSteps = to - from > 0 ? (to - from) : 1;
-      const animTime = (animSteps * 250) + 200;
-
-      setTimeout(() => {
-        if (!result.extraTurn) {
-          room.game.nextTurn();
-        } else {
-          room.game.diceRolled = false;
-        }
-        io.to(roomId).emit('game_state_update', room.game.getState());
-      }, animTime);
+      // Emit token_moved so clients can animate, passing the true final state
+      io.to(roomId).emit('token_moved', { tokenId, from, to, gameState: finalGameState });
     }
   });
 
