@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { COLORS, START_INDICES, SAFE_POSITIONS, BOARD_PATH, HOME_STRETCHES } from '../utils/constants';
-import { playRollSound, playMoveSound } from '../utils/audio';
+import { playRollSound, playMoveSound, playCaptureSound, playGoalSound, playWinSound } from '../utils/audio';
 
 const initialTokens = Object.values(COLORS).flatMap(color => 
   [0, 1, 2, 3].map(id => ({
@@ -112,12 +112,27 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
           }
         }
 
+        // Detect captures and goals from state change
+        const oldTokens = latestTokens.current;
+        let didCapture = false;
+        let didGoal = false;
+        gameState.tokens.forEach(nt => {
+          const ot = oldTokens.find(t => t.id === nt.id);
+          if (ot && ot.distance >= 0 && nt.distance === -1) didCapture = true;
+          if (ot && ot.distance < 56 && nt.distance === 56) didGoal = true;
+        });
+        if (didCapture) playCaptureSound();
+        if (didGoal) playGoalSound();
+
         // Apply final state from server
         setTokens(gameState.tokens);
         setTurn(gameState.turn);
         setDiceValue(gameState.diceValue);
         setDiceRolled(gameState.diceRolled);
-        if (gameState.winner) setWinner(gameState.winner);
+        if (gameState.winner) {
+          if (!winner) playWinSound();
+          setWinner(gameState.winner);
+        }
         if (gameState.activeColors) setActiveColors(gameState.activeColors);
 
         setIsAnimating(false);
@@ -282,14 +297,18 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
           });
           extraTurn = true;
           setTokens(currentTokens);
+          playCaptureSound();
         }
       }
     }
+
+    if (targetDistance === 56) playGoalSound();
 
     const myTokens = currentTokens.filter(t => t.color === turn);
     const hasWon = myTokens.every(t => t.distance === 56);
     
     if (hasWon) {
+      playWinSound();
       setWinner(turn);
       setIsAnimating(false);
       return;
