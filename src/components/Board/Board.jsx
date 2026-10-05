@@ -13,14 +13,7 @@ const Board = ({ tokens, turn, diceValue, diceRolled, onMoveToken, isValidMove, 
     for (let row = 1; row <= 15; row++) {
       for (let col = 1; col <= 15; col++) {
         if (isPathCell(row, col)) {
-          const hasToken = tokens && tokens.some(t => {
-            if (t.distance >= 0 && t.distance <= 56) {
-              const coords = getTokenCoordinates(t);
-              return coords && coords.row === row && coords.col === col;
-            }
-            return false;
-          });
-          cells.push(<PathCell key={`${row}-${col}`} row={row} col={col} hasToken={hasToken} />);
+          cells.push(<PathCell key={`${row}-${col}`} row={row} col={col} />);
         }
       }
     }

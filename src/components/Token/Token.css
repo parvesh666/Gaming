@@ -1,61 +1,74 @@
 .ludo-token {
-  width: 70%;
-  height: 70%;
+  width: 75%;
+  height: 75%;
   border-radius: 50%;
   position: relative;
   cursor: pointer;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3), inset 0 -4px 6px rgba(0, 0, 0, 0.2);
-  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s ease;
   z-index: 10;
+  
+  /* 3D edges, highlights, and shadow */
+  box-shadow: 
+    inset 2px 2px 4px rgba(255, 255, 255, 0.7), /* Inner top-left highlight */
+    inset -3px -3px 5px rgba(0, 0, 0, 0.3), /* Inner bottom-right shadow */
+    0 4px 0 var(--edge-color, #333), /* Visible dark side / depth */
+    0 6px 8px rgba(0, 0, 0, 0.5); /* Soft drop shadow underneath */
+    
+  transform: translateY(-4px); /* Slight elevation */
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  animation: land-bounce 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .ludo-token:hover {
-  transform: scale(1.15) translateY(-2px);
-  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.3), inset 0 -4px 6px rgba(0, 0, 0, 0.2);
+  transform: translateY(-6px) scale(1.05);
+  box-shadow: 
+    inset 2px 2px 4px rgba(255, 255, 255, 0.8),
+    inset -3px -3px 5px rgba(0, 0, 0, 0.3),
+    0 6px 0 var(--edge-color, #333),
+    0 10px 12px rgba(0, 0, 0, 0.6);
 }
 
 .ludo-token:active {
-  transform: scale(0.95);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3), inset 0 -2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.token-inner {
-  position: absolute;
-  top: 15%;
-  left: 15%;
-  width: 70%;
-  height: 70%;
-  border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), rgba(255,255,255,0) 60%);
+  transform: translateY(0px) scale(0.95);
+  box-shadow: 
+    inset 2px 2px 5px rgba(255, 255, 255, 0.5),
+    inset -2px -2px 5px rgba(0, 0, 0, 0.4),
+    0 0px 0 var(--edge-color, #333),
+    0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .token-red {
-  background: radial-gradient(circle at center, var(--color-red-light) 0%, var(--color-red) 60%, var(--color-red-dark) 100%);
-  border: 1px solid var(--color-red-dark);
+  --edge-color: #991b1b;
+  background: radial-gradient(circle at 35% 35%, var(--color-red-light) 0%, var(--color-red) 45%, var(--color-red-dark) 100%);
 }
 
 .token-green {
-  background: radial-gradient(circle at center, var(--color-green-light) 0%, var(--color-green) 60%, var(--color-green-dark) 100%);
-  border: 1px solid var(--color-green-dark);
+  --edge-color: #166534;
+  background: radial-gradient(circle at 35% 35%, var(--color-green-light) 0%, var(--color-green) 45%, var(--color-green-dark) 100%);
 }
 
 .token-blue {
-  background: radial-gradient(circle at center, var(--color-blue-light) 0%, var(--color-blue) 60%, var(--color-blue-dark) 100%);
-  border: 1px solid var(--color-blue-dark);
+  --edge-color: #1e3a8a;
+  background: radial-gradient(circle at 35% 35%, var(--color-blue-light) 0%, var(--color-blue) 45%, var(--color-blue-dark) 100%);
 }
 
 .token-yellow {
-  background: radial-gradient(circle at center, var(--color-yellow-light) 0%, var(--color-yellow) 60%, var(--color-yellow-dark) 100%);
-  border: 1px solid var(--color-yellow-dark);
+  --edge-color: #854d0e;
+  background: radial-gradient(circle at 35% 35%, var(--color-yellow-light) 0%, var(--color-yellow) 45%, var(--color-yellow-dark) 100%);
 }
 
 .ludo-token.highlight {
-  animation: pulse-highlight 1.5s infinite;
+  animation: pulse-highlight 1.5s infinite, land-bounce 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   z-index: 30;
 }
 
 @keyframes pulse-highlight {
-  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7); }
-  50% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(255, 255, 255, 0); }
-  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+  0% { transform: translateY(-4px) scale(1); box-shadow: 0 4px 0 var(--edge-color), 0 0 0 0 rgba(255, 255, 255, 0.7), 0 6px 8px rgba(0,0,0,0.5); }
+  50% { transform: translateY(-4px) scale(1.1); box-shadow: 0 4px 0 var(--edge-color), 0 0 0 10px rgba(255, 255, 255, 0), 0 6px 8px rgba(0,0,0,0.5); }
+  100% { transform: translateY(-4px) scale(1); box-shadow: 0 4px 0 var(--edge-color), 0 0 0 0 rgba(255, 255, 255, 0), 0 6px 8px rgba(0,0,0,0.5); }
+}
+
+@keyframes land-bounce {
+  0% { transform: translateY(-20px) scale(1.1); opacity: 0.5; }
+  50% { transform: translateY(0px) scale(0.95); }
+  100% { transform: translateY(-4px) scale(1); opacity: 1; }
 }

@@ -7,7 +7,6 @@ const Token = ({ color, onClick, highlight }) => {
       className={`ludo-token token-${color} ${highlight ? 'highlight' : ''}`}
       onClick={onClick}
     >
-      <div className="token-inner"></div>
     </div>
   );
 };
