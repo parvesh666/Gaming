@@ -4,6 +4,7 @@ import { io } from 'socket.io-client';
 import Board from './components/Board/Board';
 import HomePage from './components/HomePage/HomePage';
 import { useGameLogic, getTokenCoordinates } from './hooks/useGameLogic';
+import { STICKER_DURATIONS } from './utils/stickers';
 import './App.css';
 
 function App() {
@@ -58,9 +59,16 @@ function App() {
           const filtered = prev.filter(s => s.color !== data.color);
           return [...filtered, { ...data, id }];
         });
+        
+        // Extract filename and get duration
+        const filename = data.stickerUrl.split('/').pop();
+        const duration = STICKER_DURATIONS[filename] || 5000;
+        // Play at least 5s, but cap at 15s to prevent stuck memes due to malformed files
+        const playTime = Math.min(Math.max(5000, duration), 15000);
+        
         setTimeout(() => {
           setActiveStickers(prev => prev.filter(s => s.id !== id));
-        }, 5000);
+        }, playTime);
       };
 
       socket.on('player_left', handlePlayerLeft);
@@ -91,9 +99,14 @@ function App() {
         const filtered = prev.filter(s => s.color !== color);
         return [...filtered, { color, stickerUrl, id, timestamp: Date.now() }];
       });
+      
+      const filename = stickerUrl.split('/').pop();
+      const duration = STICKER_DURATIONS[filename] || 5000;
+      const playTime = Math.min(Math.max(5000, duration), 15000);
+      
       setTimeout(() => {
         setActiveStickers(prev => prev.filter(s => s.id !== id));
-      }, 5000);
+      }, playTime);
     }
   };
 
