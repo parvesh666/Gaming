@@ -7,7 +7,7 @@ import Token from '../Token/Token';
 import { COLORS, isPathCell } from '../../utils/constants';
 import { getTokenCoordinates } from '../../hooks/useGameLogic';
 
-const Board = ({ tokens, turn, diceValue, diceRolled, onMoveToken, isValidMove, activeColors }) => {
+const Board = ({ tokens, turn, diceValue, diceRolled, onMoveToken, isValidMove, activeColors, myColor, isRolling }) => {
   const renderPathCells = () => {
     const cells = [];
     for (let row = 1; row <= 15; row++) {
@@ -50,7 +50,7 @@ const Board = ({ tokens, turn, diceValue, diceRolled, onMoveToken, isValidMove, 
           }}
         >
           {cellTokens.map((token, idx) => {
-            const isClickable = turn === token.color && diceRolled && isValidMove(token, diceValue);
+            const isClickable = turn === token.color && diceRolled && !isRolling && isValidMove(token, diceValue);
             return (
               <div key={token.id} className="token-container" style={{ zIndex: 10 + idx }}>
                 <Token 
@@ -70,10 +70,10 @@ const Board = ({ tokens, turn, diceValue, diceRolled, onMoveToken, isValidMove, 
     <div className="board-wrapper glass">
       <div className="ludo-board">
         {/* The 4 Player Bases */}
-        <PlayerBase color={COLORS.RED} position="top-left" tokens={tokens} turn={turn} diceRolled={diceRolled} diceValue={diceValue} onMoveToken={onMoveToken} isValidMove={isValidMove} activeColors={activeColors} />
-        <PlayerBase color={COLORS.GREEN} position="top-right" tokens={tokens} turn={turn} diceRolled={diceRolled} diceValue={diceValue} onMoveToken={onMoveToken} isValidMove={isValidMove} activeColors={activeColors} />
-        <PlayerBase color={COLORS.BLUE} position="bottom-left" tokens={tokens} turn={turn} diceRolled={diceRolled} diceValue={diceValue} onMoveToken={onMoveToken} isValidMove={isValidMove} activeColors={activeColors} />
-        <PlayerBase color={COLORS.YELLOW} position="bottom-right" tokens={tokens} turn={turn} diceRolled={diceRolled} diceValue={diceValue} onMoveToken={onMoveToken} isValidMove={isValidMove} activeColors={activeColors} />
+        <PlayerBase color={COLORS.RED} position="top-left" tokens={tokens} turn={turn} diceRolled={diceRolled} diceValue={diceValue} onMoveToken={onMoveToken} isValidMove={isValidMove} activeColors={activeColors} myColor={myColor} isRolling={isRolling} />
+        <PlayerBase color={COLORS.GREEN} position="top-right" tokens={tokens} turn={turn} diceRolled={diceRolled} diceValue={diceValue} onMoveToken={onMoveToken} isValidMove={isValidMove} activeColors={activeColors} myColor={myColor} isRolling={isRolling} />
+        <PlayerBase color={COLORS.BLUE} position="bottom-left" tokens={tokens} turn={turn} diceRolled={diceRolled} diceValue={diceValue} onMoveToken={onMoveToken} isValidMove={isValidMove} activeColors={activeColors} myColor={myColor} isRolling={isRolling} />
+        <PlayerBase color={COLORS.YELLOW} position="bottom-right" tokens={tokens} turn={turn} diceRolled={diceRolled} diceValue={diceValue} onMoveToken={onMoveToken} isValidMove={isValidMove} activeColors={activeColors} myColor={myColor} isRolling={isRolling} />
         
         {/* The Center Home */}
         <Home />

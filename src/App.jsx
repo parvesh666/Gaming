@@ -14,6 +14,7 @@ function App() {
   const [socket, setSocket] = useState(null);
   const [myColor, setMyColor] = useState(null);
   const [notification, setNotification] = useState('');
+  const [isRolling, setIsRolling] = useState(false);
   
   useEffect(() => {
     let sessionId = localStorage.getItem('ludo_session');
@@ -124,6 +125,8 @@ function App() {
               diceValue={diceValue}
               diceRolled={diceRolled}
               activeColors={activeColors}
+              myColor={myColor}
+              isRolling={isRolling}
             />
             <Controls 
               turn={turn} 
@@ -132,6 +135,7 @@ function App() {
               rollId={rollId}
               onRoll={rollDice}
               isMyTurn={!isOnline || turn === myColor}
+              setIsRolling={setIsRolling}
             />
           </div>
         )}

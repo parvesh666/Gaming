@@ -3,15 +3,21 @@ import Dice from '../Dice/Dice';
 import './Controls.css';
 import { COLORS } from '../../utils/constants';
 
-const Controls = ({ turn, diceValue, diceRolled, rollId, onRoll, isMyTurn = true }) => {
-  const [isRolling, setIsRolling] = useState(false);
+const Controls = ({ turn, diceValue, diceRolled, rollId, onRoll, isMyTurn = true, setIsRolling }) => {
+  const [isRolling, setLocalIsRolling] = useState(false);
+  
+  const handleRollingStateChange = (state) => {
+    setLocalIsRolling(state);
+    if (setIsRolling) setIsRolling(state);
+  };
   return (
     <div className="controls-panel glass-dark">
       <div className="turn-indicator">
-        <h3>Current Turn</h3>
+        <h3>Now it's</h3>
         <div className={`turn-badge bg-${turn}`}>
-          {turn.toUpperCase()}
+          {turn.toUpperCase()} PLAYER'S
         </div>
+        <h3>turn</h3>
       </div>
       
       <div className="dice-section">
@@ -20,7 +26,7 @@ const Controls = ({ turn, diceValue, diceRolled, rollId, onRoll, isMyTurn = true
           disabled={diceRolled || !isMyTurn} 
           forceValue={diceValue}
           rollId={rollId}
-          onRollingStateChange={setIsRolling}
+          onRollingStateChange={handleRollingStateChange}
         />
         {diceRolled && diceValue && !isRolling && (
           <p className="roll-result">Rolled a {diceValue}!</p>
