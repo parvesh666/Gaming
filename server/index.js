@@ -75,7 +75,7 @@ io.on('connection', (socket) => {
     callback({ success: true, roomId, roomData: rooms[roomId] });
   });
 
-  socket.on('join_room', ({ roomId }, callback) => {
+  socket.on('join_room', ({ roomId, playerName }, callback) => {
     roomId = roomId.toUpperCase();
     const room = rooms[roomId];
     
