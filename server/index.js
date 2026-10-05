@@ -88,8 +88,14 @@ io.on('connection', (socket) => {
     if (room.state !== 'lobby') {
       return callback({ success: false, message: 'Game already started' });
     }
-    if (room.players.some(p => p.sessionId === currentSessionId)) {
-      return callback({ success: false, message: 'Already in room' });
+    const existingPlayer = room.players.find(p => p.sessionId === currentSessionId);
+    if (existingPlayer) {
+      existingPlayer.socketId = socket.id;
+      existingPlayer.connected = true;
+      if (playerName) existingPlayer.playerName = playerName;
+      socket.join(roomId);
+      io.to(roomId).emit('room_updated', room);
+      return callback({ success: true, roomId, roomData: room });
     }
 
     room.players.push({ socketId: socket.id, sessionId: currentSessionId, host: false, connected: true, playerName });
