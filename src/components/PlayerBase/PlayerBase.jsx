@@ -1,14 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './PlayerBase.css';
 import Token from '../Token/Token';
+import Dice from '../Dice/Dice';
+import { STICKERS } from '../../utils/stickers';
+import { MessageCircle } from 'lucide-react';
 
-const PlayerBase = ({ color, position, tokens, turn, diceRolled, diceValue, onMoveToken, isValidMove, activeColors, myColor, isRolling, players }) => {
+const PlayerBase = ({ color, position, tokens, turn, diceRolled, diceValue, onMoveToken, isValidMove, activeColors, myColor, isRolling, players, activeStickers, playSticker, rollId, onRoll, isOnline, setIsRolling }) => {
+  const [showStickerMenu, setShowStickerMenu] = useState(false);
   const isActive = activeColors.includes(color);
   const player = players?.find(p => p.color === color);
   const displayName = player?.playerName || `${color} player`;
   const baseTokens = isActive && tokens ? tokens.filter(t => t.color === color && t.distance === -1) : [];
+  
   // Determine grid area based on position
   let gridArea = '';
+  const isLeft = position === 'top-left' || position === 'bottom-left';
+
   switch (position) {
     case 'top-left':
       gridArea = '1 / 1 / 7 / 7';
@@ -26,6 +33,13 @@ const PlayerBase = ({ color, position, tokens, turn, diceRolled, diceValue, onMo
       break;
   }
 
+  const handlePlaySticker = (sticker) => {
+    playSticker(`/Stickers/${sticker}`, color);
+    setShowStickerMenu(false);
+  };
+
+  const myPlayedStickers = activeStickers?.filter(s => s.color === color) || [];
+
   return (
     <div 
       className={`player-base base-${color} ${!isActive ? 'inactive' : ''}`} 
@@ -36,6 +50,60 @@ const PlayerBase = ({ color, position, tokens, turn, diceRolled, diceValue, onMo
           {displayName.toUpperCase()} {myColor === color ? '(YOU)' : ''}
         </div>
       )}
+
+      {/* Chat Icon & Menu - Only for the active local player, or all players if offline */}
+      {isActive && (!myColor || myColor === color) && (
+        <div className={`chat-icon-container ${isLeft ? 'left-side' : 'right-side'}`}>
+          <button 
+            className="chat-icon-btn glass" 
+            onClick={() => setShowStickerMenu(!showStickerMenu)}
+            title="Send Sticker"
+          >
+            <MessageCircle size={24} color="#fff" />
+          </button>
+          
+          {showStickerMenu && (
+            <div className={`sticker-menu glass-dark ${isLeft ? 'menu-left' : 'menu-right'}`}>
+              <div className="sticker-grid">
+                {STICKERS.map(sticker => (
+                  <img 
+                    key={sticker} 
+                    src={`/Stickers/${sticker}`} 
+                    alt="sticker" 
+                    className="sticker-item"
+                    onClick={() => handlePlaySticker(sticker)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Display played stickers */}
+      {myPlayedStickers.length > 0 && (
+        <div className={`played-stickers-container ${isLeft ? 'played-left' : 'played-right'}`}>
+          {myPlayedStickers.map(sticker => (
+            <img key={sticker.id} src={sticker.stickerUrl} alt="played sticker" className="played-sticker-img" />
+          ))}
+        </div>
+      )}
+
+      {/* Dice Section */}
+      {isActive && turn === color && (
+        <div className={`player-dice-container ${isLeft ? 'dice-left' : 'dice-right'}`}>
+          <div className="player-dice-wrapper">
+            <Dice 
+              onRoll={onRoll} 
+              disabled={diceRolled || (!(!isOnline || turn === myColor))} 
+              forceValue={diceValue}
+              rollId={rollId}
+              onRollingStateChange={setIsRolling}
+            />
+          </div>
+        </div>
+      )}
+
       <div className="base-inner">
         {isActive && [0, 1, 2, 3].map((i) => {
           const token = baseTokens[i];

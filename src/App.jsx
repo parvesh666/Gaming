@@ -1,7 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { io } from 'socket.io-client';
 import Board from './components/Board/Board';
-import Controls from './components/Controls/Controls';
 import HomePage from './components/HomePage/HomePage';
 import { useGameLogic, getTokenCoordinates } from './hooks/useGameLogic';
 import './App.css';
@@ -16,6 +16,7 @@ function App() {
   const [notification, setNotification] = useState('');
   const [isRolling, setIsRolling] = useState(false);
   const [players, setPlayers] = useState([]);
+  const [activeStickers, setActiveStickers] = useState([]);
   
   useEffect(() => {
     let sessionId = localStorage.getItem('ludo_session');
@@ -51,8 +52,20 @@ function App() {
         setNotification(`Player ${color.toUpperCase()} has left the game!`);
         setTimeout(() => setNotification(''), 3000);
       };
+      const handleStickerPlayed = (data) => {
+        const id = Math.random().toString();
+        setActiveStickers(prev => [...prev, { ...data, id }]);
+        setTimeout(() => {
+          setActiveStickers(prev => prev.filter(s => s.id !== id));
+        }, 5000);
+      };
+
       socket.on('player_left', handlePlayerLeft);
-      return () => socket.off('player_left', handlePlayerLeft);
+      socket.on('sticker_played', handleStickerPlayed);
+      return () => {
+        socket.off('player_left', handlePlayerLeft);
+        socket.off('sticker_played', handleStickerPlayed);
+      };
     }
   }, [socket]);
 
@@ -64,6 +77,19 @@ function App() {
     setPlayers(currentPlayers);
     setGameState('game');
   };
+
+  const playSticker = (stickerUrl, playerColor) => {
+    if (isOnline && socket) {
+      socket.emit('play_sticker', { roomId, stickerUrl });
+    } else {
+      const id = Math.random().toString();
+      setActiveStickers(prev => [...prev, { color: playerColor || myColor || turn, stickerUrl, id, timestamp: Date.now() }]);
+      setTimeout(() => {
+        setActiveStickers(prev => prev.filter(s => s.id !== id));
+      }, 5000);
+    }
+  };
+
   const {
     tokens,
     turn,
@@ -132,16 +158,12 @@ function App() {
               myColor={myColor}
               isRolling={isRolling}
               players={players}
-            />
-            <Controls 
-              turn={turn} 
-              diceValue={diceValue} 
-              diceRolled={diceRolled} 
+              activeStickers={activeStickers}
+              playSticker={playSticker}
               rollId={rollId}
               onRoll={rollDice}
-              isMyTurn={!isOnline || turn === myColor}
+              isOnline={isOnline}
               setIsRolling={setIsRolling}
-              players={players}
             />
           </div>
         )}

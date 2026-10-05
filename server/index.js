@@ -178,6 +178,20 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('play_sticker', ({ roomId, stickerUrl }) => {
+    const room = rooms[roomId];
+    if (!room) return;
+
+    const player = room.players.find(p => p.socketId === socket.id);
+    if (!player) return;
+
+    io.to(roomId).emit('sticker_played', { 
+      color: player.color, 
+      stickerUrl, 
+      timestamp: Date.now() 
+    });
+  });
+
   socket.on('leave_game', ({ roomId }) => {
     const room = rooms[roomId];
     if (!room) return;
