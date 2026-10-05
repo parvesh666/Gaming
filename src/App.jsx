@@ -131,7 +131,6 @@ function App() {
               diceRolled={diceRolled} 
               rollId={rollId}
               onRoll={rollDice}
-              boostSix={allInBase}
               isMyTurn={!isOnline || turn === myColor}
             />
           </div>

@@ -171,7 +171,7 @@ const DiceMesh = ({ value, animKey, onAnimComplete }) => {
   );
 };
 
-const Dice = ({ onRoll, disabled, forceValue, rollId, boostSix }) => {
+const Dice = ({ onRoll, disabled, forceValue, rollId }) => {
   const [rolling, setRolling] = useState(false);
   const [anim, setAnim] = useState({ key: 0, value: null });
 
@@ -194,9 +194,6 @@ const Dice = ({ onRoll, disabled, forceValue, rollId, boostSix }) => {
 
     if (onRoll) {
       let finalValue = Math.floor(Math.random() * 6) + 1;
-      if (boostSix && Math.random() < 0.5) {
-        finalValue = 6;
-      }
       onRoll(finalValue);
     }
   };
