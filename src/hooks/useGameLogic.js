@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { COLORS, START_INDICES, SAFE_POSITIONS, BOARD_PATH, HOME_STRETCHES } from '../utils/constants';
-import { playRollSound, playMoveSound, playCaptureSound, playGoalSound, playWinSound } from '../utils/audio';
+import { playRollSound, playMoveSound, playCaptureSound, playGoalSound, playWinSound, playTurnSound } from '../utils/audio';
 
 const initialTokens = Object.values(COLORS).flatMap(color => 
   [0, 1, 2, 3].map(id => ({
@@ -67,6 +67,26 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
     setConsecutiveSixes(0);
     setIsAnimating(false);
   }, [playerCount, isOnline]);
+
+  // Play turn sound when it becomes our turn
+  const isFirstRender = useRef(true);
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    
+    if (winner) return;
+    
+    // In online mode, only ping if it's our turn. In local mode, ping for every turn change.
+    if (isOnline && myColor) {
+      if (turn === myColor) {
+        playTurnSound();
+      }
+    } else if (!isOnline) {
+      playTurnSound();
+    }
+  }, [turn, isOnline, myColor, winner]);
 
   useEffect(() => {
     if (isOnline && socket) {
@@ -341,6 +361,22 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
       }
     }
   }, [diceRolled, diceValue, turn, isAnimating, winner, isOnline, tokens]);
+
+  // Auto-roll dice after 40 seconds if the player doesn't roll
+  useEffect(() => {
+    if (!diceRolled && !winner && !isAnimating) {
+      if (isOnline && myColor && turn !== myColor) {
+        return; // Wait for opponent's client to trigger their own auto-roll
+      }
+
+      const timer = setTimeout(() => {
+        // Pass a random value for local mode. Online mode ignores the arg and requests server.
+        rollDice(Math.floor(Math.random() * 6) + 1);
+      }, 40000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [diceRolled, turn, winner, isAnimating, isOnline, myColor]);
 
   return {
     tokens,
