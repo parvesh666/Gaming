@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, extend } from '@react-three/fiber';
 import { Environment, ContactShadows } from '@react-three/drei';
 import * as THREE from 'three';
 import { RoundedBoxGeometry } from 'three-stdlib';
-import './Dice.css';
 import { playRollSound } from '../../utils/audio';
+import './Dice.css';
+
+extend({ RoundedBoxGeometry });
 
 function createDiceFace(number) {
   const canvas = document.createElement('canvas');
@@ -161,16 +163,6 @@ const DiceMesh = ({ forceValue, rollId, onAnimComplete }) => {
        diceRef.current.rotation.set(...getRotationForNumber(forceValue || 6));
     }
   }, []); // Only on mount
-
-  // Build Geometry once
-  useEffect(() => {
-    if (!geometryRef.current) {
-      geometryRef.current = new RoundedBoxGeometry(2, 2, 2, 4, 0.3);
-      if (diceRef.current) {
-        diceRef.current.geometry = geometryRef.current;
-      }
-    }
-  }, []);
 
   return (
     <mesh ref={diceRef} castShadow material={materials}>
