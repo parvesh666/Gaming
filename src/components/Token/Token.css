@@ -66,9 +66,9 @@
 }
 
 @keyframes pulse-highlight {
-  0% { transform: translateY(-4px) scale(1); box-shadow: 0 4px 0 var(--edge-color), 0 0 0 0 var(--glow-color), 0 6px 8px rgba(0,0,0,0.5); filter: brightness(1); }
-  50% { transform: translateY(-4px) scale(1.1); box-shadow: 0 4px 0 var(--edge-color), 0 0 15px 4px var(--glow-color), 0 6px 8px rgba(0,0,0,0.5); filter: brightness(1.2); }
-  100% { transform: translateY(-4px) scale(1); box-shadow: 0 4px 0 var(--edge-color), 0 0 0 0 var(--glow-color), 0 6px 8px rgba(0,0,0,0.5); filter: brightness(1); }
+  0% { transform: translateY(-4px) scale(1); box-shadow: 0 4px 0 var(--edge-color), 0 10px 10px -5px var(--glow-color), 0 6px 8px rgba(0,0,0,0.5); filter: brightness(1); }
+  50% { transform: translateY(-4px) scale(1.1); box-shadow: 0 4px 0 var(--edge-color), 0 15px 25px 2px var(--glow-color), 0 6px 8px rgba(0,0,0,0.5); filter: brightness(1.15); }
+  100% { transform: translateY(-4px) scale(1); box-shadow: 0 4px 0 var(--edge-color), 0 10px 10px -5px var(--glow-color), 0 6px 8px rgba(0,0,0,0.5); filter: brightness(1); }
 }
 
 @keyframes land-bounce {

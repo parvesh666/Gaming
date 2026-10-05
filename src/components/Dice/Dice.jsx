@@ -171,9 +171,15 @@ const DiceMesh = ({ value, animKey, onAnimComplete }) => {
   );
 };
 
-const Dice = ({ onRoll, disabled, forceValue, rollId }) => {
+const Dice = ({ onRoll, disabled, forceValue, rollId, onRollingStateChange }) => {
   const [rolling, setRolling] = useState(false);
   const [anim, setAnim] = useState({ key: 0, value: null });
+
+  useEffect(() => {
+    if (onRollingStateChange) {
+      onRollingStateChange(rolling);
+    }
+  }, [rolling, onRollingStateChange]);
 
   // A roll starts when `rollId` changes (if the parent provides it) OR when
   // `forceValue` changes. `rollId` is optional, so existing parents keep working.

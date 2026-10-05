@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Dice from '../Dice/Dice';
 import './Controls.css';
 import { COLORS } from '../../utils/constants';
 
 const Controls = ({ turn, diceValue, diceRolled, rollId, onRoll, isMyTurn = true }) => {
+  const [isRolling, setIsRolling] = useState(false);
   return (
     <div className="controls-panel glass-dark">
       <div className="turn-indicator">
@@ -19,12 +20,16 @@ const Controls = ({ turn, diceValue, diceRolled, rollId, onRoll, isMyTurn = true
           disabled={diceRolled || !isMyTurn} 
           forceValue={diceValue}
           rollId={rollId}
+          onRollingStateChange={setIsRolling}
         />
-        {diceRolled && diceValue && (
+        {diceRolled && diceValue && !isRolling && (
           <p className="roll-result">Rolled a {diceValue}!</p>
         )}
-        {!diceRolled && (
+        {!diceRolled && !isRolling && (
           <p className="roll-hint">{isMyTurn ? "Click to roll" : "Waiting for opponent..."}</p>
+        )}
+        {isRolling && (
+          <p className="roll-hint">Rolling...</p>
         )}
       </div>
     </div>
