@@ -21,11 +21,21 @@ function App() {
   
   useEffect(() => {
     let sessionId = sessionStorage.getItem('ludo_session');
-    let playerName = localStorage.getItem('playerName');
+    
+    // Graceful migration: if they have an old localStorage session, move it over
     if (!sessionId) {
-      sessionId = Math.random().toString(36).substring(2, 15);
+      const oldLocalSession = localStorage.getItem('ludo_session');
+      if (oldLocalSession) {
+        sessionId = oldLocalSession;
+        // Remove it so other tabs don't also copy it and cause the multi-tab bug again
+        localStorage.removeItem('ludo_session');
+      } else {
+        sessionId = Math.random().toString(36).substring(2, 15);
+      }
       sessionStorage.setItem('ludo_session', sessionId);
     }
+    
+    let playerName = localStorage.getItem('playerName');
 
     const newSocket = io('https://gaming-6kav.onrender.com');
     setSocket(newSocket);

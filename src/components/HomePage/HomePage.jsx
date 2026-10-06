@@ -25,7 +25,7 @@ const HomePage = ({ onStartGame, socket }) => {
     });
 
     socket.on('game_started', (data) => {
-      // Use socketId as primary key, fallback to sessionId (from sessionStorage for better multi-tab testing)
+      // Use socketId as primary key, fallback to sessionId (from sessionStorage)
       const sessionId = sessionStorage.getItem('ludo_session');
       const me = data.players.find(p => p.socketId === socket.id)
              || data.players.find(p => p.sessionId === sessionId);
