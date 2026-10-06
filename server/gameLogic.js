@@ -102,11 +102,12 @@ class LudoGame {
     }
     if (token.distance + roll > 56) return false;
 
-    // Check each square along the path for opponent blocks (can't land on or pass through)
-    for (let d = token.distance + 1; d <= token.distance + roll; d++) {
-      if (d > 50) break; // Home stretch - no opponent blocks possible
-      const tempCoords = this.getTokenCoordinates({ ...token, distance: d });
-      if (tempCoords && this.isBlockedAt(tempCoords.row, tempCoords.col, token.color)) {
+    // Only check the FINAL landing cell for an opponent doublet block.
+    // Tokens are allowed to pass THROUGH a stack — they just can't LAND on one.
+    const finalDistance = token.distance + roll;
+    if (finalDistance <= 50) {
+      const finalCoords = this.getTokenCoordinates({ ...token, distance: finalDistance });
+      if (finalCoords && this.isBlockedAt(finalCoords.row, finalCoords.col, token.color)) {
         return false;
       }
     }
@@ -128,7 +129,10 @@ class LudoGame {
       this.missedTurns[requestedByColor] = 0;
     }
 
-    const val = Math.floor(Math.random() * 6) + 1;
+    let val = Math.floor(Math.random() * 6) + 1;
+    if (val !== 6 && Math.random() < 0.03) {
+      val = 6;
+    }
 
     this.diceValue = val;
     this.diceRolled = true;

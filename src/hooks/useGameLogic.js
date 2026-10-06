@@ -240,11 +240,12 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
     }
     if (token.distance + roll > 56) return false;
 
-    // Check each square along the path for opponent blocks (can't land on or pass through)
-    for (let d = token.distance + 1; d <= token.distance + roll; d++) {
-      if (d > 50) break; // Home stretch - no opponent blocks possible
-      const tempCoords = getTokenCoordinates({ ...token, distance: d });
-      if (tempCoords && isBlockedAt(tempCoords.row, tempCoords.col, token.color)) {
+    // Only check the FINAL landing cell for an opponent doublet block.
+    // Tokens are allowed to pass THROUGH a stack — they just can't LAND on one.
+    const finalDistance = token.distance + roll;
+    if (finalDistance <= 50) {
+      const finalCoords = getTokenCoordinates({ ...token, distance: finalDistance });
+      if (finalCoords && isBlockedAt(finalCoords.row, finalCoords.col, token.color)) {
         return false;
       }
     }
@@ -421,7 +422,7 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
       const timer = setTimeout(() => {
         // Pass a random value for local mode. Online mode ignores the arg and requests server.
         let autoRoll = Math.floor(Math.random() * 6) + 1;
-        if (autoRoll !== 6 && Math.random() < 0.015) autoRoll = 6;
+        if (autoRoll !== 6 && Math.random() < 0.03) autoRoll = 6;
         rollDice(autoRoll, true);
       }, 30000);
 

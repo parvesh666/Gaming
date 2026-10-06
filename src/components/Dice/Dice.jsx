@@ -200,8 +200,8 @@ const Dice = ({ onRoll, disabled, forceValue, rollId, onRollingStateChange }) =>
 
     if (onRoll) {
       let finalValue = Math.floor(Math.random() * 6) + 1;
-      // Very minor boost for rolling a 6 (~17.9% total chance)
-      if (finalValue !== 6 && Math.random() < 0.015) {
+      // Minor boost for rolling a 6 (~19.2% total chance, up from base 16.7%)
+      if (finalValue !== 6 && Math.random() < 0.03) {
         finalValue = 6;
       }
       onRoll(finalValue);
