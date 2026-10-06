@@ -128,6 +128,7 @@ function App() {
     diceRolled,
     rollId,
     winner,
+    winners,
     rollDice,
     moveToken,
     isValidMove,
@@ -174,7 +175,26 @@ function App() {
         )}
         {winner ? (
           <div className="winner-banner glass">
-            <h2>Player {winner.toUpperCase()} Wins!</h2>
+            <h2>🏆 Game Over!</h2>
+            {winners.length > 0 ? (
+              <ol className="podium-list">
+                {winners.map((color, idx) => (
+                  <li key={color} className={`podium-position podium-${idx + 1}`}>
+                    {idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉'} {color.toUpperCase()}
+                  </li>
+                ))}
+                {/* Remaining active players who didn't finish are losers */}
+                {activeColors
+                  .filter(c => !winners.includes(c))
+                  .map(color => (
+                    <li key={color} className="podium-position podium-loser">
+                      💀 {color.toUpperCase()}
+                    </li>
+                  ))}
+              </ol>
+            ) : (
+              <p>{winner.toUpperCase()} Wins!</p>
+            )}
             <button onClick={() => window.location.reload()} className="restart-btn">Play Again</button>
           </div>
         ) : (
@@ -197,6 +217,7 @@ function App() {
               isOnline={isOnline}
               setIsRolling={setIsRolling}
               missedTurns={missedTurns}
+              winners={winners}
             />
           </div>
         )}

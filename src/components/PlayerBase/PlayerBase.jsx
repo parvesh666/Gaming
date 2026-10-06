@@ -5,12 +5,15 @@ import Dice from '../Dice/Dice';
 import { STICKERS } from '../../utils/stickers';
 import { MessageCircle } from 'lucide-react';
 
-const PlayerBase = ({ color, position, tokens, turn, diceRolled, diceValue, onMoveToken, isValidMove, activeColors, myColor, isRolling, players, activeStickers, playSticker, rollId, onRoll, isOnline, setIsRolling, missedTurns }) => {
+const PlayerBase = ({ color, position, tokens, turn, diceRolled, diceValue, onMoveToken, isValidMove, activeColors, myColor, isRolling, players, activeStickers, playSticker, rollId, onRoll, isOnline, setIsRolling, missedTurns, winners = [] }) => {
   const [showStickerMenu, setShowStickerMenu] = useState(false);
   const isActive = activeColors.includes(color);
+  const finishedPosition = winners.indexOf(color); // -1 if not finished
+  const hasFinished = finishedPosition !== -1;
   const player = players?.find(p => p.color === color);
   const displayName = player?.playerName || `${color} player`;
   const baseTokens = isActive && tokens ? tokens.filter(t => t.color === color && t.distance === -1) : [];
+  const POSITION_MEDALS = ['🥇', '🥈', '🥉', '4️⃣'];
   
   // Determine grid area based on position
   let gridArea = '';
@@ -49,15 +52,19 @@ const PlayerBase = ({ color, position, tokens, turn, diceRolled, diceValue, onMo
       {isActive && (
         <div className="player-label">
           {displayName.toUpperCase()} {myColor === color ? '(YOU)' : ''}
-          <div className="missed-turns-container">
-            {[0, 1, 2].map(i => (
-              <div 
-                key={i} 
-                className={`missed-turn-dot ${i < playerMissedTurns ? 'lost' : 'active'}`} 
-                title={`${3 - playerMissedTurns} chances remaining`}
-              />
-            ))}
-          </div>
+          {hasFinished ? (
+            <span className="finish-badge">{POSITION_MEDALS[finishedPosition]} Finished!</span>
+          ) : (
+            <div className="missed-turns-container">
+              {[0, 1, 2].map(i => (
+                <div
+                  key={i}
+                  className={`missed-turn-dot ${i < playerMissedTurns ? 'lost' : 'active'}`}
+                  title={`${3 - playerMissedTurns} chances remaining`}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -99,15 +106,13 @@ const PlayerBase = ({ color, position, tokens, turn, diceRolled, diceValue, onMo
         </div>
       )}
 
-      {/* Dice Section:
-          Show on the active player's base for ALL clients so everyone can see whose
-          turn it is. The `disabled` prop prevents non-active players from clicking. */}
-      {isActive && turn === color && (
+      {/* Dice Section: show for active turn players only (skip if player has finished) */}
+      {isActive && turn === color && !hasFinished && (
         <div className={`player-dice-container ${isLeft ? 'dice-left' : 'dice-right'}`}>
           <div className="player-dice-wrapper">
-            <Dice 
-              onRoll={onRoll} 
-              disabled={diceRolled || (isOnline && turn !== myColor)} 
+            <Dice
+              onRoll={onRoll}
+              disabled={diceRolled || (isOnline && turn !== myColor)}
               forceValue={diceValue}
               rollId={rollId}
               onRollingStateChange={setIsRolling}

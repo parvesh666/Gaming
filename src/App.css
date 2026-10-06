@@ -103,3 +103,27 @@
 .restart-btn:hover {
   transform: scale(1.05);
 }
+
+/* Podium list on game-over screen */
+.podium-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.podium-position {
+  font-size: 1.4rem;
+  font-weight: 700;
+  padding: 8px 20px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  letter-spacing: 0.05em;
+}
+
+.podium-1 { color: #ffd700; }
+.podium-2 { color: #c0c0c0; }
+.podium-3 { color: #cd7f32; }
+.podium-loser { color: #ff6b6b; }

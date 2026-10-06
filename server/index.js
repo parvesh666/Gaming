@@ -109,10 +109,13 @@ io.on('connection', (socket) => {
 
   socket.on('start_online_game', ({ roomId }) => {
     const room = rooms[roomId];
-    if (room && room.players[0].socketId === socket.id) {
+    if (!room) return;
+    // Allow the player marked as host to start (robust across socket reconnects)
+    const requestingPlayer = room.players.find(p => p.socketId === socket.id);
+    if (requestingPlayer && requestingPlayer.host) {
       room.state = 'playing';
       room.game = new LudoGame(room.playerCount);
-      
+
       room.players.forEach((p, index) => {
         p.color = room.game.activeColors[index];
       });
@@ -173,23 +176,34 @@ io.on('connection', (socket) => {
     const result = room.game.moveToken(tokenId, player.color);
     if (result !== false) {
       const to = room.game.tokens.find(t => t.id === tokenId).distance;
-      
+
       // Consume dice immediately to prevent double-move exploits
       room.game.diceValue = null;
 
-      // Compute final state immediately
-      if (result.hasWon) {
-        // do nothing extra
-      } else if (!result.extraTurn) {
-        room.game.nextTurn();
-      } else {
+      // Advance turn unless the player won (nextTurn already called inside moveToken for multi-player win)
+      if (!result.hasWon) {
+        if (!result.extraTurn) {
+          room.game.nextTurn();
+        } else {
+          room.game.diceRolled = false;
+        }
+      } else if (!result.gameOver) {
+        // hasWon but game not over (3p/4p mid-game finish): nextTurn already called in moveToken
         room.game.diceRolled = false;
       }
 
       const finalGameState = room.game.getState();
 
-      // Emit token_moved so clients can animate, passing the true final state
       io.to(roomId).emit('token_moved', { tokenId, from, to, gameState: finalGameState });
+
+      // Announce when a player finishes (for podium display)
+      if (result.finishedColor) {
+        io.to(roomId).emit('player_finished', {
+          color: result.finishedColor,
+          position: result.winners.length,
+          winners: result.winners
+        });
+      }
     }
   });
 

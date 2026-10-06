@@ -2,11 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import { COLORS, START_INDICES, SAFE_POSITIONS, BOARD_PATH, HOME_STRETCHES } from '../utils/constants';
 import { playRollSound, playMoveSound, playCaptureSound, playGoalSound, playWinSound, playTurnSound } from '../utils/audio';
 
-const initialTokens = Object.values(COLORS).flatMap(color => 
+const initialTokens = Object.values(COLORS).flatMap(color =>
   [0, 1, 2, 3].map(id => ({
     id: `${color}-${id}`,
     color,
-    distance: -1 
+    distance: -1
   }))
 );
 
@@ -18,12 +18,12 @@ export const getTokenCoordinates = (token) => {
     if (token.color === COLORS.YELLOW) return { row: 8, col: 9 };
     if (token.color === COLORS.BLUE) return { row: 9, col: 8 };
   }
-  
+
   if (token.distance >= 51) {
     const stretchIndex = token.distance - 51;
     return HOME_STRETCHES[token.color][stretchIndex];
   }
-  
+
   const start = START_INDICES[token.color];
   const pathIndex = (start + token.distance) % 52;
   return BOARD_PATH[pathIndex];
@@ -38,30 +38,30 @@ const getActiveColorsForCount = (count) => {
 export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, roomId = null, myColor = null) => {
   const [activeColors, setActiveColors] = useState(() => getActiveColorsForCount(playerCount));
 
-  const [tokens, setTokens] = useState(() => 
+  const [tokens, setTokens] = useState(() =>
     initialTokens.filter(t => activeColors.includes(t.color))
   );
   const [turn, setTurn] = useState(activeColors[0]);
   const [diceValue, setDiceValue] = useState(null);
   const [diceRolled, setDiceRolled] = useState(false);
   const [rollId, setRollId] = useState(0);
+  // Legacy winner field (used for 2p end condition or final game-over)
   const [winner, setWinner] = useState(null);
+  // Ordered podium — colors in finish order; used in 3p/4p
+  const [winners, setWinners] = useState([]);
   const [isAnimating, setIsAnimating] = useState(false);
   const [consecutiveSixes, setConsecutiveSixes] = useState(0);
   const [missedTurns, setMissedTurns] = useState({});
 
   const isAnimatingRef = useRef(isAnimating);
   const latestTokens = useRef(tokens);
+  const winnersRef = useRef(winners);
 
-  useEffect(() => {
-    isAnimatingRef.current = isAnimating;
-  }, [isAnimating]);
+  useEffect(() => { isAnimatingRef.current = isAnimating; }, [isAnimating]);
+  useEffect(() => { latestTokens.current = tokens; }, [tokens]);
+  useEffect(() => { winnersRef.current = winners; }, [winners]);
 
-  useEffect(() => {
-    latestTokens.current = tokens;
-  }, [tokens]);
-
-  // Reset game state when playerCount changes (fixes 2P/3P showing 4 players)
+  // Reset game state when playerCount changes
   useEffect(() => {
     const newActiveColors = getActiveColorsForCount(playerCount);
     setActiveColors(newActiveColors);
@@ -70,6 +70,7 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
     setDiceValue(null);
     setDiceRolled(false);
     setWinner(null);
+    setWinners([]);
     setConsecutiveSixes(0);
     setMissedTurns({});
     setIsAnimating(false);
@@ -82,14 +83,9 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
       isFirstRender.current = false;
       return;
     }
-    
     if (winner) return;
-    
-    // In online mode, only ping if it's our turn. In local mode, ping for every turn change.
     if (isOnline && myColor) {
-      if (turn === myColor) {
-        playTurnSound();
-      }
+      if (turn === myColor) playTurnSound();
     } else if (!isOnline) {
       playTurnSound();
     }
@@ -102,14 +98,13 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
         setDiceValue(newState.diceValue);
         setDiceRolled(newState.diceRolled);
         if (newState.diceRolled && !newState.previousDiceRolled) {
-          // If server sends a new roll state
           setRollId(prev => prev + 1);
         }
         if (newState.winner) setWinner(newState.winner);
+        if (newState.winners) setWinners(newState.winners);
         if (newState.activeColors) setActiveColors(newState.activeColors);
-        
         if (!isAnimatingRef.current) {
-           setTokens(newState.tokens);
+          setTokens(newState.tokens);
         }
       };
 
@@ -120,7 +115,7 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
 
       const handleTokenMoved = async ({ tokenId, from, to, gameState }) => {
         setIsAnimating(true);
-        
+
         const delay = ms => new Promise(res => setTimeout(res, ms));
         let currentTokens = [...latestTokens.current];
         const tokenIndex = currentTokens.findIndex(t => t.id === tokenId);
@@ -165,27 +160,43 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
           if (!winner) playWinSound();
           setWinner(gameState.winner);
         }
+        if (gameState.winners) setWinners(gameState.winners);
         if (gameState.activeColors) setActiveColors(gameState.activeColors);
         if (gameState.missedTurns) setMissedTurns(gameState.missedTurns);
 
         setIsAnimating(false);
       };
 
+      const handlePlayerFinished = ({ color, position, winners: newWinners }) => {
+        setWinners(newWinners);
+        if (position === 1) playWinSound();
+      };
+
       socket.on('game_state_update', handleGameStateUpdate);
       socket.on('dice_rolled', handleDiceRolled);
       socket.on('token_moved', handleTokenMoved);
+      socket.on('player_finished', handlePlayerFinished);
 
       return () => {
-        socket.off('game_state_update');
-        socket.off('dice_rolled');
-        socket.off('token_moved');
+        socket.off('game_state_update', handleGameStateUpdate);
+        socket.off('dice_rolled', handleDiceRolled);
+        socket.off('token_moved', handleTokenMoved);
+        socket.off('player_finished', handlePlayerFinished);
       };
     }
   }, [isOnline, socket]);
 
-  const nextTurn = (currentTurn) => {
-    const nextIndex = (activeColors.indexOf(currentTurn) + 1) % activeColors.length;
-    setTurn(activeColors[nextIndex]);
+  // Returns colors that haven't finished yet
+  const getRemainingColors = (currentActiveColors, currentWinners) => {
+    return currentActiveColors.filter(c => !currentWinners.includes(c));
+  };
+
+  const nextTurn = (currentTurn, currentActiveColors, currentWinners) => {
+    const remaining = getRemainingColors(currentActiveColors, currentWinners);
+    if (remaining.length === 0) return;
+    const currentIndex = remaining.indexOf(currentTurn);
+    const nextIndex = (currentIndex + 1) % remaining.length;
+    setTurn(remaining[nextIndex]);
     setDiceValue(null);
     setDiceRolled(false);
     setConsecutiveSixes(0);
@@ -198,11 +209,13 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
       newActiveColors.splice(index, 1);
       setActiveColors(newActiveColors);
       setTokens(prev => prev.filter(t => t.color !== colorToRemove));
-      
-      if (newActiveColors.length === 1) {
-        setWinner(newActiveColors[0]);
+
+      const remaining = getRemainingColors(newActiveColors, winnersRef.current);
+      if (remaining.length <= 1) {
+        setWinner(remaining.length === 1 ? remaining[0] : newActiveColors[0]);
       } else if (turn === colorToRemove) {
-        setTurn(newActiveColors[index % newActiveColors.length]);
+        const fallbackIdx = index % remaining.length;
+        setTurn(remaining[fallbackIdx] || remaining[0]);
         setDiceValue(null);
         setDiceRolled(false);
         setConsecutiveSixes(0);
@@ -210,20 +223,20 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
     }
   };
 
-  // Check if there's an opponent block (2+ same-color tokens) at a board position
+  // Check if there's an opponent block (2+ same-color tokens from a DIFFERENT color) at a board position
   const isBlockedAt = (row, col, movingColor) => {
     const tokensHere = tokens.filter(t => {
-      if (t.color === movingColor) return false;
+      if (t.color === movingColor) return false; // Own tokens never block yourself
       if (t.distance < 0 || t.distance > 50) return false;
       const coords = getTokenCoordinates(t);
       return coords && coords.row === row && coords.col === col;
     });
-    
+
     const byColor = {};
     tokensHere.forEach(t => {
       byColor[t.color] = (byColor[t.color] || 0) + 1;
     });
-    
+
     return Object.values(byColor).some(c => c >= 2);
   };
 
@@ -231,7 +244,6 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
     if (token.distance === 56) return false;
     if (token.distance === -1) {
       if (roll !== 6) return false;
-      // Check if starting position is blocked by opponent double tokens
       const startCoords = getTokenCoordinates({ ...token, distance: 0 });
       if (startCoords && isBlockedAt(startCoords.row, startCoords.col, token.color)) {
         return false;
@@ -241,7 +253,6 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
     if (token.distance + roll > 56) return false;
 
     // Only check the FINAL landing cell for an opponent doublet block.
-    // Tokens are allowed to pass THROUGH a stack — they just can't LAND on one.
     const finalDistance = token.distance + roll;
     if (finalDistance <= 50) {
       const finalCoords = getTokenCoordinates({ ...token, distance: finalDistance });
@@ -262,6 +273,8 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
     }
 
     if (diceRolled || winner || isAnimating) return;
+    // Don't allow a finished player to roll
+    if (winners.includes(turn)) return;
 
     if (isAuto) {
       const newMissed = (missedTurns[turn] || 0) + 1;
@@ -274,16 +287,20 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
       setMissedTurns(prev => ({ ...prev, [turn]: 0 }));
     }
 
-    setDiceValue(val);
+    // ~21% chance for 6
+    let finalVal = val;
+    if (finalVal !== 6 && Math.random() < 0.055) {
+      finalVal = 6;
+    }
+
+    setDiceValue(finalVal);
     setDiceRolled(true);
 
-    // Three consecutive sixes penalty
-    if (val === 6) {
+    if (finalVal === 6) {
       const newCount = consecutiveSixes + 1;
       setConsecutiveSixes(newCount);
       if (newCount >= 3) {
-        // Forfeit turn - three sixes in a row
-        setTimeout(() => nextTurn(turn), 1000);
+        setTimeout(() => nextTurn(turn, activeColors, winners), 1000);
         return;
       }
     } else {
@@ -291,10 +308,10 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
     }
 
     const myTokens = tokens.filter(t => t.color === turn);
-    const hasValidMove = myTokens.some(t => isValidMove(t, val));
-    
+    const hasValidMove = myTokens.some(t => isValidMove(t, finalVal));
+
     if (!hasValidMove) {
-      setTimeout(() => nextTurn(turn), 1000);
+      setTimeout(() => nextTurn(turn, activeColors, winners), 1000);
     }
   };
 
@@ -307,7 +324,7 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
     }
 
     if (!diceRolled || !diceValue || isAnimating) return;
-    
+
     const token = tokens.find(t => t.id === tokenId);
     if (token.color !== turn) return;
     if (!isValidMove(token, diceValue)) return;
@@ -320,7 +337,7 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
     const targetDistance = currentDistance === -1 ? 0 : currentDistance + diceValue;
 
     const delay = ms => new Promise(res => setTimeout(res, ms));
-    
+
     let currentTokens = [...tokens];
 
     if (currentDistance === -1) {
@@ -344,12 +361,12 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
     if (currentDistance >= 0 && currentDistance <= 50) {
       const newCoords = getTokenCoordinates(currentTokens[tokenIndex]);
       const isSafe = SAFE_POSITIONS.some(sp => sp.row === newCoords.row && sp.col === newCoords.col);
-      
+
       if (!isSafe) {
-        const captured = currentTokens.filter(t => 
-          t.color !== turn && 
+        const captured = currentTokens.filter(t =>
+          t.color !== turn &&
           t.distance >= 0 && t.distance <= 50 &&
-          getTokenCoordinates(t).row === newCoords.row && 
+          getTokenCoordinates(t).row === newCoords.row &&
           getTokenCoordinates(t).col === newCoords.col
         );
 
@@ -373,18 +390,36 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
 
     const myTokens = currentTokens.filter(t => t.color === turn);
     const hasWon = myTokens.every(t => t.distance === 56);
-    
+
     if (hasWon) {
       playWinSound();
-      setWinner(turn);
+      const newWinners = [...winners, turn];
+      setWinners(newWinners);
       setIsAnimating(false);
+
+      if (playerCount === 2) {
+        // 2-player: end game immediately
+        setWinner(turn);
+        return;
+      }
+
+      // 3p/4p: check if game is over (only 1 left)
+      const remaining = getRemainingColors(activeColors, newWinners);
+      if (remaining.length <= 1) {
+        setWinner(newWinners[0]); // 1st-place winner is "the winner"
+        return;
+      }
+
+      // Game continues — skip this player's extra turn, go to next remaining
+      setIsAnimating(false);
+      setTimeout(() => nextTurn(turn, activeColors, newWinners), 200);
       return;
     }
 
     setIsAnimating(false);
 
     if (!extraTurn) {
-      setTimeout(() => nextTurn(turn), 200);
+      setTimeout(() => nextTurn(turn, activeColors, winners), 200);
     } else {
       setTimeout(() => {
         setDiceValue(null);
@@ -396,12 +431,13 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
   // Auto-move when only one valid token can move
   useEffect(() => {
     if (diceRolled && diceValue && !isAnimating && !winner) {
-      // In online mode, only auto-move for own turn. Block if myColor not yet assigned.
       if (isOnline && (!myColor || turn !== myColor)) return;
+      // Don't auto-move for a finished player
+      if (winners.includes(turn)) return;
 
       const myTokens = tokens.filter(t => t.color === turn);
       const validTokens = myTokens.filter(t => isValidMove(t, diceValue));
-      
+
       if (validTokens.length === 1) {
         const timer = setTimeout(() => {
           moveToken(validTokens[0].id);
@@ -409,26 +445,24 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
         return () => clearTimeout(timer);
       }
     }
-  }, [diceRolled, diceValue, turn, isAnimating, winner, isOnline, tokens]);
+  }, [diceRolled, diceValue, turn, isAnimating, winner, isOnline, tokens, winners]);
 
   // Auto-roll dice after 30 seconds if the player doesn't roll
   useEffect(() => {
     if (!diceRolled && !winner && !isAnimating) {
-      // In online mode, only auto-roll for own turn. Block if myColor not yet assigned.
-      if (isOnline && (!myColor || turn !== myColor)) {
-        return; // Wait for the player whose turn it is to trigger their own auto-roll
-      }
+      if (isOnline && (!myColor || turn !== myColor)) return;
+      // Don't auto-roll for a finished player
+      if (winners.includes(turn)) return;
 
       const timer = setTimeout(() => {
-        // Pass a random value for local mode. Online mode ignores the arg and requests server.
         let autoRoll = Math.floor(Math.random() * 6) + 1;
-        if (autoRoll !== 6 && Math.random() < 0.03) autoRoll = 6;
+        if (autoRoll !== 6 && Math.random() < 0.055) autoRoll = 6;
         rollDice(autoRoll, true);
       }, 30000);
 
       return () => clearTimeout(timer);
     }
-  }, [diceRolled, turn, winner, isAnimating, isOnline, myColor, missedTurns]);
+  }, [diceRolled, turn, winner, isAnimating, isOnline, myColor, missedTurns, winners]);
 
   return {
     tokens,
@@ -437,6 +471,7 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
     diceRolled,
     rollId,
     winner,
+    winners,
     rollDice,
     moveToken,
     isValidMove,

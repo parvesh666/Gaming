@@ -240,3 +240,24 @@
   opacity: 0.9;
   box-shadow: 0 0 4px rgba(239, 68, 68, 0.6);
 }
+
+/* Podium / finish badge */
+.finish-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #ffd700;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  animation: badge-pop 0.4s ease;
+}
+
+@keyframes badge-pop {
+  0% { transform: scale(0.5); opacity: 0; }
+  80% { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
