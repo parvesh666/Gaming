@@ -55,9 +55,19 @@ class LudoGame {
   nextTurn() {
     const remaining = this.getRemainingColors();
     if (remaining.length === 0) return;
-    const currentIndex = remaining.indexOf(this.turn);
-    const nextIndex = (currentIndex + 1) % remaining.length;
-    this.turn = remaining[nextIndex];
+
+    // Walk forward through the FULL activeColors order so we
+    // correctly skip winners / removed players and land on the
+    // true next remaining player.
+    const currentIdx = this.activeColors.indexOf(this.turn);
+    for (let i = 1; i <= this.activeColors.length; i++) {
+      const nextColor = this.activeColors[(currentIdx + i) % this.activeColors.length];
+      if (remaining.includes(nextColor)) {
+        this.turn = nextColor;
+        break;
+      }
+    }
+
     this.diceValue = null;
     this.diceRolled = false;
     this.consecutiveSixes = 0;

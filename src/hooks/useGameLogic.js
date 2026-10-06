@@ -97,9 +97,9 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
         setTurn(newState.turn);
         setDiceValue(newState.diceValue);
         setDiceRolled(newState.diceRolled);
-        if (newState.diceRolled && !newState.previousDiceRolled) {
-          setRollId(prev => prev + 1);
-        }
+        // rollId is NOT incremented here — the dice_rolled handler + forceValue
+        // change already triggers animation. Incrementing here would restart
+        // the 3D dice mid-roll.
         if (newState.winner) setWinner(newState.winner);
         if (newState.winners) setWinners(newState.winners);
         if (newState.activeColors) setActiveColors(newState.activeColors);
@@ -194,9 +194,18 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
   const nextTurn = (currentTurn, currentActiveColors, currentWinners) => {
     const remaining = getRemainingColors(currentActiveColors, currentWinners);
     if (remaining.length === 0) return;
-    const currentIndex = remaining.indexOf(currentTurn);
-    const nextIndex = (currentIndex + 1) % remaining.length;
-    setTurn(remaining[nextIndex]);
+
+    // Walk forward through the FULL activeColors order so we
+    // correctly skip winners and land on the true next player.
+    const currentIdx = currentActiveColors.indexOf(currentTurn);
+    for (let i = 1; i <= currentActiveColors.length; i++) {
+      const nextColor = currentActiveColors[(currentIdx + i) % currentActiveColors.length];
+      if (remaining.includes(nextColor)) {
+        setTurn(nextColor);
+        break;
+      }
+    }
+
     setDiceValue(null);
     setDiceRolled(false);
     setConsecutiveSixes(0);

@@ -109,7 +109,9 @@ io.on('connection', (socket) => {
 
   socket.on('start_online_game', ({ roomId }) => {
     const room = rooms[roomId];
-    if (!room) return;
+    if (!room || room.state !== 'lobby') return;
+    // All slots must be filled before starting
+    if (room.players.length < room.playerCount) return;
     // Allow the player marked as host to start (robust across socket reconnects)
     const requestingPlayer = room.players.find(p => p.socketId === socket.id);
     if (requestingPlayer && requestingPlayer.host) {
