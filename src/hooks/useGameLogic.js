@@ -395,8 +395,8 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
   // Auto-move when only one valid token can move
   useEffect(() => {
     if (diceRolled && diceValue && !isAnimating && !winner) {
-      // In online mode, only auto-move for own turn
-      if (isOnline && myColor && turn !== myColor) return;
+      // In online mode, only auto-move for own turn. Block if myColor not yet assigned.
+      if (isOnline && (!myColor || turn !== myColor)) return;
 
       const myTokens = tokens.filter(t => t.color === turn);
       const validTokens = myTokens.filter(t => isValidMove(t, diceValue));
@@ -413,8 +413,9 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
   // Auto-roll dice after 30 seconds if the player doesn't roll
   useEffect(() => {
     if (!diceRolled && !winner && !isAnimating) {
-      if (isOnline && myColor && turn !== myColor) {
-        return; // Wait for opponent's client to trigger their own auto-roll
+      // In online mode, only auto-roll for own turn. Block if myColor not yet assigned.
+      if (isOnline && (!myColor || turn !== myColor)) {
+        return; // Wait for the player whose turn it is to trigger their own auto-roll
       }
 
       const timer = setTimeout(() => {

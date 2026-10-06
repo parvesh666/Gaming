@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Users, UserPlus, Users2, Globe, Monitor, Play, Copy, Check } from 'lucide-react';
 import './HomePage.css';
 
@@ -11,24 +11,34 @@ const HomePage = ({ onStartGame, socket }) => {
   const [copied, setCopied] = useState(false);
   const [playerName, setPlayerName] = useState(() => localStorage.getItem('playerName') || '');
 
+  // Refs to avoid stale closures inside socket handlers
+  const roomIdRef = useRef('');
+  const playerCountRef = useRef(0);
+
   useEffect(() => {
     if (!socket) return;
 
     socket.on('room_updated', (updatedRoom) => {
       setRoomData(updatedRoom);
+      // Keep refs in sync so game_started handler always has latest values
+      if (updatedRoom.playerCount) playerCountRef.current = updatedRoom.playerCount;
     });
 
     socket.on('game_started', (data) => {
-      const me = data.players.find(p => p.socketId === socket.id);
+      // Use sessionId as primary key (more reliable than socketId across reconnects)
+      const sessionId = localStorage.getItem('ludo_session');
+      const me = data.players.find(p => p.sessionId === sessionId)
+             || data.players.find(p => p.socketId === socket.id);
       const myPlayerColor = me ? me.color : null;
-      onStartGame(roomData.playerCount, true, roomId, myPlayerColor, data.players); 
+      onStartGame(playerCountRef.current || data.players.length, true, roomIdRef.current, myPlayerColor, data.players);
     });
 
     return () => {
       socket.off('room_updated');
       socket.off('game_started');
     };
-  }, [socket, roomData, onStartGame, roomId]);
+  // Only re-run when socket changes — roomId/playerCount accessed via refs
+  }, [socket, onStartGame]);
 
   const handleCreate = (count) => {
     if (!socket || !playerName.trim()) return;
@@ -37,6 +47,8 @@ const HomePage = ({ onStartGame, socket }) => {
       if (response.success) {
         setRoomData(response.roomData);
         setRoomId(response.roomId);
+        roomIdRef.current = response.roomId;
+        playerCountRef.current = count;
         setMode('lobby');
         setError('');
       }
@@ -51,6 +63,8 @@ const HomePage = ({ onStartGame, socket }) => {
       if (response.success) {
         setRoomData(response.roomData);
         setRoomId(response.roomId);
+        roomIdRef.current = response.roomId;
+        playerCountRef.current = response.roomData.playerCount;
         setMode('lobby');
         setError('');
       } else {

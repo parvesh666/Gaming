@@ -33,7 +33,8 @@ function App() {
     newSocket.on('connect', () => {
       newSocket.emit('register_session', { sessionId, playerName }, (response) => {
         if (response.restored) {
-          const me = response.roomData.players.find(p => p.socketId === newSocket.id);
+          const me = response.roomData.players.find(p => p.sessionId === sessionId)
+                 || response.roomData.players.find(p => p.socketId === newSocket.id);
           setMyColor(me ? me.color : null);
           setPlayerCount(response.roomData.playerCount);
           setPlayers(response.roomData.players);
