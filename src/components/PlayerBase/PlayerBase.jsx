@@ -100,10 +100,9 @@ const PlayerBase = ({ color, position, tokens, turn, diceRolled, diceValue, onMo
       )}
 
       {/* Dice Section:
-          - Local mode: show on the currently-active player's base (turn === color)
-          - Online mode: only show on YOUR OWN base when it is YOUR turn,
-            so dice never bleeds onto someone else's base. */}
-      {isActive && turn === color && (!isOnline || !myColor || myColor === color) && (
+          Show on the active player's base for ALL clients so everyone can see whose
+          turn it is. The `disabled` prop prevents non-active players from clicking. */}
+      {isActive && turn === color && (
         <div className={`player-dice-container ${isLeft ? 'dice-left' : 'dice-right'}`}>
           <div className="player-dice-wrapper">
             <Dice 
