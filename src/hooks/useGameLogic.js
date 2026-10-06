@@ -419,7 +419,9 @@ export const useGameLogic = (playerCount = 4, isOnline = false, socket = null, r
 
       const timer = setTimeout(() => {
         // Pass a random value for local mode. Online mode ignores the arg and requests server.
-        rollDice(Math.floor(Math.random() * 6) + 1, true);
+        let autoRoll = Math.floor(Math.random() * 6) + 1;
+        if (autoRoll !== 6 && Math.random() < 0.015) autoRoll = 6;
+        rollDice(autoRoll, true);
       }, 30000);
 
       return () => clearTimeout(timer);
