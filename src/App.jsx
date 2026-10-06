@@ -20,11 +20,11 @@ function App() {
   const [activeStickers, setActiveStickers] = useState([]);
   
   useEffect(() => {
-    let sessionId = localStorage.getItem('ludo_session');
+    let sessionId = sessionStorage.getItem('ludo_session');
     let playerName = localStorage.getItem('playerName');
     if (!sessionId) {
       sessionId = Math.random().toString(36).substring(2, 15);
-      localStorage.setItem('ludo_session', sessionId);
+      sessionStorage.setItem('ludo_session', sessionId);
     }
 
     const newSocket = io('https://gaming-6kav.onrender.com');
@@ -33,8 +33,8 @@ function App() {
     newSocket.on('connect', () => {
       newSocket.emit('register_session', { sessionId, playerName }, (response) => {
         if (response.restored) {
-          const me = response.roomData.players.find(p => p.sessionId === sessionId)
-                 || response.roomData.players.find(p => p.socketId === newSocket.id);
+          const me = response.roomData.players.find(p => p.socketId === newSocket.id)
+                 || response.roomData.players.find(p => p.sessionId === sessionId);
           setMyColor(me ? me.color : null);
           setPlayerCount(response.roomData.playerCount);
           setPlayers(response.roomData.players);
@@ -146,7 +146,7 @@ function App() {
             if (isOnline && socket) {
               socket.emit('leave_game', { roomId });
             }
-            localStorage.removeItem('ludo_session');
+            sessionStorage.removeItem('ludo_session');
             setGameState('home'); 
             window.location.reload(); 
           }} 

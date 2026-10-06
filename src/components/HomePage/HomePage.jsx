@@ -25,10 +25,10 @@ const HomePage = ({ onStartGame, socket }) => {
     });
 
     socket.on('game_started', (data) => {
-      // Use sessionId as primary key (more reliable than socketId across reconnects)
-      const sessionId = localStorage.getItem('ludo_session');
-      const me = data.players.find(p => p.sessionId === sessionId)
-             || data.players.find(p => p.socketId === socket.id);
+      // Use socketId as primary key, fallback to sessionId (from sessionStorage for better multi-tab testing)
+      const sessionId = sessionStorage.getItem('ludo_session');
+      const me = data.players.find(p => p.socketId === socket.id)
+             || data.players.find(p => p.sessionId === sessionId);
       const myPlayerColor = me ? me.color : null;
       onStartGame(playerCountRef.current || data.players.length, true, roomIdRef.current, myPlayerColor, data.players);
     });
